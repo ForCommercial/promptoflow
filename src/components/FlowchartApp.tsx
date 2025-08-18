@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -11,18 +11,13 @@ import {
   Edge,
   Node,
   Position,
-  NodeTypes,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Download, Play, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { EditableNode, EditableNodeData } from './EditableNode';
-import { FlowchartToolbar } from './FlowchartToolbar';
 
 interface ParsedStep {
   id: string;
@@ -34,7 +29,6 @@ interface ParsedStep {
 }
 
 const FlowchartApp = () => {
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const [promptText, setPromptText] = useState(`Step 1: Start
 Step 2a: Resume Upload
 Step 2b: Skills/Interests Input
@@ -45,10 +39,6 @@ Step 6: Receive insights`);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-
-  const nodeTypes: NodeTypes = useMemo(() => ({
-    editable: EditableNode,
-  }), []);
 
   const parsePrompt = useCallback((text: string): ParsedStep[] => {
     const lines = text.split('\n').filter(line => line.trim());
@@ -86,42 +76,6 @@ Step 6: Receive insights`);
     
     return steps;
   }, []);
-
-  // Interactive editing functions
-  const handleNodeEdit = useCallback((nodeId: string, newLabel: string) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId
-          ? { ...node, data: { ...node.data, label: newLabel } }
-          : node
-      )
-    );
-    toast.success('Node updated');
-  }, [setNodes]);
-
-  const handleNodeDelete = useCallback((nodeId: string) => {
-    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
-    setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
-    toast.success('Node deleted');
-  }, [setNodes, setEdges]);
-
-  const handleNodeColorChange = useCallback((nodeId: string, backgroundColor: string, borderColor: string) => {
-    setNodes((nds) =>
-      nds.map((node) =>
-        node.id === nodeId
-          ? { 
-              ...node, 
-              data: { 
-                ...node.data, 
-                backgroundColor, 
-                borderColor 
-              } 
-            }
-          : node
-      )
-    );
-    toast.success('Node color updated');
-  }, [setNodes]);
 
   const generateFlowchart = useCallback(() => {
     const parsedSteps = parsePrompt(promptText);
@@ -162,16 +116,21 @@ Step 6: Receive insights`);
           
           newNodes.push({
             id: step.id,
-            type: 'editable',
+            type: 'default',
             position: { x: xPosition, y: yPosition },
             data: { 
-              label: step.text,
-              backgroundColor: isParallelLevel ? '#fef3c7' : '#dbeafe',
+              label: step.text 
+            },
+            style: {
+              width: nodeWidth,
+              height: nodeHeight,
+              background: isParallelLevel ? '#fef3c7' : '#dbeafe',
+              border: '2px solid',
               borderColor: isParallelLevel ? '#f59e0b' : '#3b82f6',
-              onEdit: handleNodeEdit,
-              onDelete: handleNodeDelete,
-              onColorChange: handleNodeColorChange,
-            } as EditableNodeData,
+              borderRadius: '8px',
+              fontSize: '12px',
+              padding: '8px'
+            },
             sourcePosition: Position.Bottom,
             targetPosition: Position.Top,
           });
@@ -181,16 +140,20 @@ Step 6: Receive insights`);
         const step = levelSteps[0];
         newNodes.push({
           id: step.id,
-          type: 'editable',
+          type: 'default',
           position: { x: -nodeWidth / 2, y: yPosition },
           data: { 
-            label: step.text,
-            backgroundColor: '#dbeafe',
-            borderColor: '#3b82f6',
-            onEdit: handleNodeEdit,
-            onDelete: handleNodeDelete,
-            onColorChange: handleNodeColorChange,
-          } as EditableNodeData,
+            label: step.text 
+          },
+          style: {
+            width: nodeWidth,
+            height: nodeHeight,
+            background: '#dbeafe',
+            border: '2px solid #3b82f6',
+            borderRadius: '8px',
+            fontSize: '12px',
+            padding: '8px'
+          },
           sourcePosition: Position.Bottom,
           targetPosition: Position.Top,
         });
@@ -257,29 +220,7 @@ Step 6: Receive insights`);
     setNodes(newNodes);
     setEdges(newEdges);
     toast.success('Flowchart generated successfully!');
-  }, [promptText, setNodes, setEdges, parsePrompt, handleNodeEdit, handleNodeDelete, handleNodeColorChange]);
-
-  const addNewNode = useCallback(() => {
-    const newNodeId = `node-${Date.now()}`;
-    const newNode: Node = {
-      id: newNodeId,
-      type: 'editable',
-      position: { x: Math.random() * 400 - 200, y: Math.random() * 400 },
-      data: {
-        label: 'New Node',
-        backgroundColor: '#dbeafe',
-        borderColor: '#3b82f6',
-        onEdit: handleNodeEdit,
-        onDelete: handleNodeDelete,
-        onColorChange: handleNodeColorChange,
-      } as EditableNodeData,
-      sourcePosition: Position.Bottom,
-      targetPosition: Position.Top,
-    };
-    
-    setNodes((nds) => [...nds, newNode]);
-    toast.success('New node added');
-  }, [setNodes, handleNodeEdit, handleNodeDelete, handleNodeColorChange]);
+  }, [promptText, setNodes, setEdges, parsePrompt]);
 
   const onConnect = useCallback(
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -292,74 +233,9 @@ Step 6: Receive insights`);
     toast.info('Diagram cleared');
   }, [setNodes, setEdges]);
 
-  const exportToPNG = useCallback(async () => {
-    if (!reactFlowWrapper.current) return;
-    
-    try {
-      const canvas = await html2canvas(reactFlowWrapper.current, {
-        backgroundColor: '#f8fafc',
-        scale: 2,
-      });
-      
-      const link = document.createElement('a');
-      link.download = 'flowchart.png';
-      link.href = canvas.toDataURL();
-      link.click();
-      
-      toast.success('Flowchart exported as PNG');
-    } catch (error) {
-      toast.error('Failed to export as PNG');
-      console.error('Export error:', error);
-    }
+  const exportDiagram = useCallback(() => {
+    toast.info('Export functionality coming soon!');
   }, []);
-
-  const exportToPDF = useCallback(async () => {
-    if (!reactFlowWrapper.current) return;
-    
-    try {
-      const canvas = await html2canvas(reactFlowWrapper.current, {
-        backgroundColor: '#f8fafc',
-        scale: 2,
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF();
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      pdf.save('flowchart.pdf');
-      toast.success('Flowchart exported as PDF');
-    } catch (error) {
-      toast.error('Failed to export as PDF');
-      console.error('Export error:', error);
-    }
-  }, []);
-
-  const saveProject = useCallback(() => {
-    const project = {
-      promptText,
-      nodes,
-      edges,
-      timestamp: new Date().toISOString()
-    };
-    
-    localStorage.setItem('flowchart-project', JSON.stringify(project));
-    toast.success('Project saved locally');
-  }, [promptText, nodes, edges]);
 
   return (
     <div className="h-screen flex">
@@ -392,23 +268,20 @@ Step 6: Receive insights`);
                 <Trash2 className="w-4 h-4 mr-2" />
                 Clear
               </Button>
+              <Button variant="outline" onClick={exportDiagram}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
             </div>
           </div>
         </Card>
       </div>
 
       {/* Right Panel - Flowchart */}
-      <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>
-        <FlowchartToolbar 
-          onAddNode={addNewNode}
-          onExportPNG={exportToPNG}
-          onExportPDF={exportToPDF}
-          onSaveProject={saveProject}
-        />
+      <div className="flex-1 bg-slate-50">
         <ReactFlow
           nodes={nodes}
           edges={edges}
-          nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
