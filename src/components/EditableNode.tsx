@@ -14,9 +14,17 @@ import { MoreVertical, Edit, Trash2, Palette } from 'lucide-react';
 
 export interface EditableNodeData extends Record<string, unknown> {
   label: string;
+  nodeId?: string;
   backgroundColor?: string;
   borderColor?: string;
+  isStartNode?: boolean;
+  isEndNode?: boolean;
+  startMarker?: string;
+  endMarker?: string;
   onEdit?: (id: string, newLabel: string) => void;
+  onIdEdit?: (id: string, newNodeId: string) => void;
+  onMarkerEdit?: (id: string, marker: string, isStart: boolean) => void;
+  onMarkerToggle?: (id: string, markerType: 'start' | 'end', enabled: boolean) => void;
   onDelete?: (id: string) => void;
   onColorChange?: (id: string, backgroundColor: string, borderColor: string) => void;
 }
@@ -36,22 +44,67 @@ export const EditableNode: React.FC<NodeProps> = ({
   id, 
   data, 
   selected 
-}) => {
-  const nodeData = data as unknown as EditableNodeData;
+}) => {  const nodeData = data as unknown as EditableNodeData;
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingId, setIsEditingId] = useState(false);
+  const [isEditingMarker, setIsEditingMarker] = useState(false);
   const [editValue, setEditValue] = useState(nodeData.label || '');
+  const [editIdValue, setEditIdValue] = useState(nodeData.nodeId || id);
+  const [editMarkerValue, setEditMarkerValue] = useState('');
+  const [editingStartMarker, setEditingStartMarker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
+  const idInputRef = useRef<HTMLInputElement>(null);
+  const markerInputRef = useRef<HTMLInputElement>(null);  useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
       inputRef.current.select();
     }
-  }, [isEditing]);
+    if (isEditingId && idInputRef.current) {
+      idInputRef.current.focus();
+      idInputRef.current.select();
+    }
+    if (isEditingMarker && markerInputRef.current) {
+      markerInputRef.current.focus();
+      markerInputRef.current.select();
+    }
+  }, [isEditing, isEditingId, isEditingMarker]);
 
   const handleEdit = useCallback(() => {
     setIsEditing(true);
   }, []);
+
+  const handleIdEdit = useCallback(() => {
+    setIsEditingId(true);
+  }, []);
+
+  const handleMarkerEdit = useCallback((isStart: boolean) => {
+    const currentMarker = isStart ? nodeData.startMarker || '▶' : nodeData.endMarker || '🏁';
+    setEditMarkerValue(currentMarker);
+    setEditingStartMarker(isStart);
+    setIsEditingMarker(true);
+  }, [nodeData.startMarker, nodeData.endMarker]);
+
+  // Granular real-time handlers for inch-by-inch tracking
+  const handleRealTimeEdit = useCallback((newValue: string) => {
+    setEditValue(newValue);
+    if (nodeData.onEdit) {
+      nodeData.onEdit(id, newValue); // Call immediately for every keystroke
+    }
+  }, [nodeData.onEdit, id]);
+
+  const handleRealTimeIdEdit = useCallback((newValue: string) => {
+    setEditIdValue(newValue);
+    if (nodeData.onIdEdit && newValue.trim()) {
+      nodeData.onIdEdit(id, newValue.trim()); // Call immediately for every keystroke
+    }
+  }, [nodeData.onIdEdit, id]);
+
+  const handleRealTimeMarkerEdit = useCallback((newValue: string) => {
+    setEditMarkerValue(newValue);
+    if (nodeData.onMarkerEdit) {
+      nodeData.onMarkerEdit(id, newValue, editingStartMarker); // Call immediately for every keystroke
+    }
+  }, [nodeData.onMarkerEdit, id, editingStartMarker]);
 
   const handleSave = useCallback(() => {
     if (editValue.trim() && nodeData.onEdit) {
@@ -59,11 +112,33 @@ export const EditableNode: React.FC<NodeProps> = ({
     }
     setIsEditing(false);
   }, [editValue, nodeData.onEdit, id]);
+  const handleIdSave = useCallback(() => {
+    if (editIdValue.trim() && nodeData.onIdEdit) {
+      nodeData.onIdEdit(id, editIdValue.trim());
+    }
+    setIsEditingId(false);
+  }, [editIdValue, nodeData.onIdEdit, id]);
+
+  const handleMarkerSave = useCallback(() => {
+    if (editMarkerValue.trim() && nodeData.onMarkerEdit) {
+      nodeData.onMarkerEdit(id, editMarkerValue.trim(), editingStartMarker);
+    }
+    setIsEditingMarker(false);
+  }, [editMarkerValue, nodeData.onMarkerEdit, id, editingStartMarker]);
 
   const handleCancel = useCallback(() => {
     setEditValue(nodeData.label || '');
     setIsEditing(false);
   }, [nodeData.label]);
+  const handleIdCancel = useCallback(() => {
+    setEditIdValue(nodeData.nodeId || id);
+    setIsEditingId(false);
+  }, [nodeData.nodeId, id]);
+
+  const handleMarkerCancel = useCallback(() => {
+    setEditMarkerValue('');
+    setIsEditingMarker(false);
+  }, []);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -73,17 +148,38 @@ export const EditableNode: React.FC<NodeProps> = ({
     }
   }, [handleSave, handleCancel]);
 
+  const handleIdKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleIdSave();
+    } else if (e.key === 'Escape') {
+      handleIdCancel();
+    }  }, [handleIdSave, handleIdCancel]);
+
+  const handleMarkerKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleMarkerSave();
+    } else if (e.key === 'Escape') {
+      handleMarkerCancel();
+    }
+  }, [handleMarkerSave, handleMarkerCancel]);
+
   const handleDelete = useCallback(() => {
     if (nodeData.onDelete) {
       nodeData.onDelete(id);
     }
   }, [nodeData.onDelete, id]);
-
   const handleColorChange = useCallback((backgroundColor: string, borderColor: string) => {
     if (nodeData.onColorChange) {
       nodeData.onColorChange(id, backgroundColor, borderColor);
     }
   }, [nodeData.onColorChange, id]);
+
+  const handleMarkerToggle = useCallback((markerType: 'start' | 'end') => {
+    if (nodeData.onMarkerToggle) {
+      const currentlyEnabled = markerType === 'start' ? nodeData.isStartNode : nodeData.isEndNode;
+      nodeData.onMarkerToggle(id, markerType, !currentlyEnabled);
+    }
+  }, [nodeData.onMarkerToggle, nodeData.isStartNode, nodeData.isEndNode, id]);
 
   return (
     <Card 
@@ -98,30 +194,98 @@ export const EditableNode: React.FC<NodeProps> = ({
       <Handle 
         type="target" 
         position={Position.Top} 
-        className="w-3 h-3 bg-gray-400 border-2 border-white"
-      />
+        className="w-3 h-3 bg-gray-400 border-2 border-white"      />
       
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex-1 min-h-[20px]">
-          {isEditing ? (
-            <Input
-              ref={inputRef}
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={handleSave}
-              onKeyDown={handleKeyPress}
-              className="text-sm h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300"
-              style={{ fontSize: '12px' }}
+      {/* Start/End Markers */}
+      {nodeData.isStartNode && (
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+          {isEditingMarker && editingStartMarker ? (            <Input
+              ref={markerInputRef}
+              value={editMarkerValue}
+              onChange={(e) => handleRealTimeMarkerEdit(e.target.value)}
+              onBlur={handleMarkerSave}
+              onKeyDown={handleMarkerKeyPress}
+              className="text-lg h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300 text-center w-8"
+              placeholder="▶"
             />
           ) : (
             <div 
-              className="text-sm font-medium text-center cursor-pointer hover:bg-black/5 rounded p-1"
-              onClick={handleEdit}
-              style={{ fontSize: '12px' }}
+              className="text-lg cursor-pointer hover:bg-black/5 rounded p-1 text-center"
+              onClick={() => handleMarkerEdit(true)}
+              title="Click to edit start marker"
             >
-              {nodeData.label}
+              {nodeData.startMarker || '▶'}
             </div>
           )}
+        </div>
+      )}
+      
+      {nodeData.isEndNode && (
+        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
+          {isEditingMarker && !editingStartMarker ? (            <Input
+              ref={markerInputRef}
+              value={editMarkerValue}
+              onChange={(e) => handleRealTimeMarkerEdit(e.target.value)}
+              onBlur={handleMarkerSave}
+              onKeyDown={handleMarkerKeyPress}
+              className="text-lg h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300 text-center w-8"
+              placeholder="🏁"
+            />
+          ) : (
+            <div 
+              className="text-lg cursor-pointer hover:bg-black/5 rounded p-1 text-center"
+              onClick={() => handleMarkerEdit(false)}
+              title="Click to edit end marker"
+            >
+              {nodeData.endMarker || '🏁'}
+            </div>
+          )}
+        </div>
+      )}
+        <div className="flex items-center justify-between gap-2">
+        <div className="flex-1">
+          {/* Node ID */}
+          <div className="mb-1">
+            {isEditingId ? (
+              <Input
+                ref={idInputRef}
+                value={editIdValue}
+                onChange={(e) => handleRealTimeIdEdit(e.target.value)}
+                onBlur={handleIdSave}
+                onKeyDown={handleIdKeyPress}
+                className="text-xs h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300 font-mono"
+                placeholder="Node ID"
+              />
+            ) : (
+              <div 
+                className="text-xs font-mono text-gray-600 cursor-pointer hover:bg-black/5 rounded p-1 text-center"
+                onClick={handleIdEdit}
+                title="Click to edit ID"
+              >
+                #{nodeData.nodeId || id}
+              </div>
+            )}
+          </div>
+          
+          {/* Node Label */}
+          <div className="min-h-[20px]">
+            {isEditing ? (
+              <Input                ref={inputRef}
+                value={editValue}
+                onChange={(e) => handleRealTimeEdit(e.target.value)}
+                onBlur={handleSave}
+                onKeyDown={handleKeyPress}
+                className="text-sm h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300"
+              />
+            ) : (
+              <div 
+                className="text-sm font-medium text-center cursor-pointer hover:bg-black/5 rounded p-1"
+                onClick={handleEdit}
+              >
+                {nodeData.label}
+              </div>
+            )}
+          </div>
         </div>
         
         {selected && (
@@ -131,10 +295,18 @@ export const EditableNode: React.FC<NodeProps> = ({
                 <MoreVertical className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={handleEdit}>
+            <DropdownMenuContent align="end">              <DropdownMenuItem onClick={handleEdit}>
                 <Edit className="h-3 w-3 mr-2" />
                 Edit
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => handleMarkerToggle('start')}>
+                <Edit className="h-3 w-3 mr-2" />
+                {nodeData.isStartNode ? 'Remove Start Marker' : 'Add Start Marker'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleMarkerToggle('end')}>
+                <Edit className="h-3 w-3 mr-2" />
+                {nodeData.isEndNode ? 'Remove End Marker' : 'Add End Marker'}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenu>

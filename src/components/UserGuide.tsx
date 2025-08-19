@@ -42,11 +42,11 @@ export const UserGuide: React.FC = () => {
               <p className="text-muted-foreground">
                 After parallel branches (2a, 2b), the next step automatically becomes Step 3
               </p>
-            </div>
-            <div>
+            </div>            <div>
               <Badge variant="outline" className="mb-1">Selective Continuation</Badge>
               <p className="text-muted-foreground">
-                Continue from a specific branch using "from": e.g., "Step 3: from 2a: Next step" or "Step 3: (from 2a) Next step". Multiple: "from 2a,2c".
+                Continue from specific branches using <strong>brackets</strong>: "Step 3: <code>(from 2a)</code>" or multiple: "Step 6: <code>(from 5a,5b)</code>". 
+                <span className="text-red-600 font-medium">⚠️ Brackets are required!</span> Without brackets, the parsing may fail.
               </p>
             </div>
           </div>
@@ -59,22 +59,20 @@ export const UserGuide: React.FC = () => {
             <GitBranch className="w-5 h-5" />
             Sample Prompts
           </h3>
-          <div className="space-y-3 text-sm">
-            <div className="bg-muted p-2 rounded text-xs font-mono">
+          <div className="space-y-3 text-sm">            <div className="bg-muted p-2 rounded text-xs font-mono">
               <div>Step 1: User Registration</div>
               <div>Step 2a: Email Verification</div>
               <div>Step 2b: Phone Verification</div>
-              <div>Step 3: from 2a: Profile Setup</div>
+              <div>Step 3: (from 2a): Profile Setup</div>
               <div>Step 4: Dashboard Access</div>
             </div>
-            
-            <div className="bg-muted p-2 rounded text-xs font-mono">
+              <div className="bg-muted p-2 rounded text-xs font-mono">
               <div>Step 1: Project Planning</div>
               <div>Step 2: Development Phase</div>
               <div>Step 3a: Frontend Development</div>
               <div>Step 3b: Backend Development</div>
               <div>Step 3c: Database Setup</div>
-              <div>Step 4: Integration Testing</div>
+              <div>Step 4: (from 3a,3b,3c): Integration Testing</div>
               <div>Step 5: Deployment</div>
             </div>
           </div>

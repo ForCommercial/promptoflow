@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -49,10 +49,60 @@ Step 6: Receive insights and recommendations`);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showGuide, setShowGuide] = useState(false);
-
   const nodeTypes: NodeTypes = useMemo(() => ({
     editable: EditableNode,
   }), []);
+
+  const fixStepLevels = useCallback((steps: ParsedStep[]): ParsedStep[] => {
+    if (steps.length === 0) return steps;
+    
+    // Group by original numeric level
+    const levelGroups: { [key: number]: Array<ParsedStep & { _originalLevel?: number; _continuesFromTokens?: string[] }> } = {};
+    (steps as Array<ParsedStep & { _originalLevel?: number; _continuesFromTokens?: string[] }>).forEach((step) => {
+      const ol = step._originalLevel ?? step.level;
+      if (!levelGroups[ol]) levelGroups[ol] = [];
+      levelGroups[ol].push(step);
+    });
+    
+    const sortedOriginalLevels = Object.keys(levelGroups).map(Number).sort((a, b) => a - b);
+    const oldToNewLevel: Record<number, number> = {};
+    const result: Array<ParsedStep & { _continuesFromTokens?: string[]; continuesFromIds?: string[] }> = [];
+    let currentOutputLevel = 1;
+    
+    // Build mapping and remap step ids/levels
+    sortedOriginalLevels.forEach((originalLevel) => {
+      oldToNewLevel[originalLevel] = currentOutputLevel;
+      const stepsAtLevel = levelGroups[originalLevel];
+      stepsAtLevel.forEach((step) => {
+        const newLevel = currentOutputLevel;
+        result.push({
+          ...step,
+          level: newLevel,
+          id: step.branch ? `step-${newLevel}${step.branch}` : `step-${newLevel}`,
+        });
+      });
+      currentOutputLevel++;
+    });
+
+    // Resolve continuesFrom tokens to actual ids using the new level mapping
+    result.forEach((step) => {
+      if (step._continuesFromTokens && step._continuesFromTokens.length) {
+        const ids: string[] = [];
+        step._continuesFromTokens.forEach((token: string) => {
+          const m = token.match(/^(\d+)([a-z]?)$/i);
+          if (m) {
+            const oldLevel = parseInt(m[1], 10);
+            const branch = m[2] || '';
+            const mappedLevel = oldToNewLevel[oldLevel] ?? oldLevel;
+            ids.push(`step-${mappedLevel}${branch}`);
+          }
+        });
+        step.continuesFromIds = ids;
+      }
+    });
+    
+    return result as ParsedStep[];
+  }, []);
 
   const parsePrompt = useCallback((text: string): ParsedStep[] => {
     const lines = text.split('\n').filter(line => line.trim());
@@ -62,7 +112,7 @@ Step 6: Receive insights and recommendations`);
       const trimmed = line.trim();
       
       // Base match: Step X (optional branch a-z)
-      const baseMatch = trimmed.match(/^(?:Step\s+)?(\d+)([a-z]?)\s*[\.:)\-]*\s*(.*)$/i);
+      const baseMatch = trimmed.match(/^(?:Step\s+)?(\d+)([a-z]?)\s*[.:)-]*\s*(.*)$/i);
       
       if (baseMatch) {
         const [, stepNumStr, branchLetter, restRaw] = baseMatch;
@@ -72,8 +122,8 @@ Step 6: Receive insights and recommendations`);
         let continuesFromTokens: string[] | undefined;
 
         // Detect "(from 2a) ..." or "from 2a: ..." or "continue from 2a,2b - ..."
-        const fromParen = rest.match(/^\(\s*(?:from|continue\s+from)\s+([0-9]+[a-z]?(?:\s*,\s*[0-9]+[a-z]?)*?)\s*\)\s*[:\-]?\s*(.*)$/i);
-        const fromInline = rest.match(/^(?:from|continue\s+from)\s+([0-9]+[a-z]?(?:\s*,\s*[0-9]+[a-z]?)*?)\s*[:\-]?\s*(.*)$/i);
+        const fromParen = rest.match(/^\(\s*(?:from|continue\s+from)\s+([0-9]+[a-z]?(?:\s*,\s*[0-9]+[a-z]?)*?)\s*\)\s*[:-]?\s*(.*)$/i);
+        const fromInline = rest.match(/^(?:from|continue\s+from)\s+([0-9]+[a-z]?(?:\s*,\s*[0-9]+[a-z]?)*?)\s*[:-]?\s*(.*)$/i);
         if (fromParen) {
           continuesFromTokens = fromParen[1].split(/\s*,\s*/).map(s => s.toLowerCase());
           rest = fromParen[2].trim();
@@ -94,75 +144,20 @@ Step 6: Receive insights and recommendations`);
         });
       } else if (trimmed) {
         // Fallback for lines that don't match the pattern
-        const fallbackLevel = index + 1;
-        rawSteps.push({
+        const fallbackLevel = index + 1;        rawSteps.push({
           id: `step-${fallbackLevel}`,
           text: trimmed,
           level: fallbackLevel,
           isParallel: false,
           _originalLevel: fallbackLevel,
-        } as any);
+        } as ParsedStep & { _originalLevel: number });
       }
     });
-    
-    // Normalize levels and resolve continuation references
+      // Normalize levels and resolve continuation references
     const fixedSteps = fixStepLevels(rawSteps as unknown as ParsedStep[]);
     return fixedSteps;
-  }, []);
-
-  const fixStepLevels = useCallback((steps: ParsedStep[]): ParsedStep[] => {
-    if (steps.length === 0) return steps;
-    
-    // Group by original numeric level
-    const levelGroups: { [key: number]: (ParsedStep & { _originalLevel?: number; _continuesFromTokens?: string[] })[] } = {} as any;
-    (steps as any).forEach((step: any) => {
-      const ol = step._originalLevel ?? step.level;
-      if (!levelGroups[ol]) levelGroups[ol] = [];
-      levelGroups[ol].push(step);
-    });
-    
-    const sortedOriginalLevels = Object.keys(levelGroups).map(Number).sort((a, b) => a - b);
-    const oldToNewLevel: Record<number, number> = {};
-    const result: (ParsedStep & { _continuesFromTokens?: string[]; continuesFromIds?: string[] })[] = [];
-    let currentOutputLevel = 1;
-    
-    // Build mapping and remap step ids/levels
-    sortedOriginalLevels.forEach((originalLevel) => {
-      oldToNewLevel[originalLevel] = currentOutputLevel;
-      const stepsAtLevel = levelGroups[originalLevel];
-      stepsAtLevel.forEach((step) => {
-        const newLevel = currentOutputLevel;
-        result.push({
-          ...step,
-          level: newLevel,
-          id: step.branch ? `step-${newLevel}${step.branch}` : `step-${newLevel}`,
-        });
-      });
-      currentOutputLevel++;
-    });
-
-    // Resolve continuesFrom tokens to actual ids using the new level mapping
-    result.forEach((step: any) => {
-      if (step._continuesFromTokens && step._continuesFromTokens.length) {
-        const ids: string[] = [];
-        step._continuesFromTokens.forEach((token: string) => {
-          const m = token.match(/^(\d+)([a-z]?)$/i);
-          if (m) {
-            const oldLevel = parseInt(m[1], 10);
-            const branch = m[2] || '';
-            const mappedLevel = oldToNewLevel[oldLevel] ?? oldLevel;
-            ids.push(`step-${mappedLevel}${branch}`);
-          }
-        });
-        step.continuesFromIds = ids;
-      }
-    });
-    
-    return result as ParsedStep[];
-  }, []);
-
-  // Interactive editing functions
-  const handleNodeEdit = useCallback((nodeId: string, newLabel: string) => {
+  }, [fixStepLevels]);  // Granular handlers for compatibility (no history tracking)
+  const handleNodeEditGranular = useCallback((nodeId: string, newLabel: string) => {
     setNodes((nds) =>
       nds.map((node) =>
         node.id === nodeId
@@ -170,15 +165,90 @@ Step 6: Receive insights and recommendations`);
           : node
       )
     );
-    toast.success('Node updated');
   }, [setNodes]);
 
+  const handleNodeIdEditGranular = useCallback((nodeId: string, newNodeId: string) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? { ...node, id: newNodeId, data: { ...node.data, nodeId: newNodeId } }
+          : node
+      )
+    );
+    // Update edges to reflect ID change
+    setEdges((eds) =>
+      eds.map((edge) => ({
+        ...edge,
+        source: edge.source === nodeId ? newNodeId : edge.source,
+        target: edge.target === nodeId ? newNodeId : edge.target,
+      }))
+    );
+  }, [setNodes, setEdges]);
+
+  const handleMarkerEditGranular = useCallback((nodeId: string, marker: string, isStart: boolean) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? { 
+              ...node, 
+              data: { 
+                ...node.data, 
+                [isStart ? 'startMarker' : 'endMarker']: marker 
+              } 
+            }
+          : node
+      )
+    );
+  }, [setNodes]);
+
+  const handleNodePositionChangeGranular = useCallback((nodeId: string, newPosition: { x: number, y: number }) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? { ...node, position: newPosition }
+          : node
+      )
+    );
+  }, [setNodes]);
+
+  // Original handlers for backward compatibility
+  const handleNodeEdit = useCallback((nodeId: string, newLabel: string) => {
+    handleNodeEditGranular(nodeId, newLabel);
+    toast.success('Node updated');
+  }, [handleNodeEditGranular]);
+
+  const handleNodeIdEdit = useCallback((nodeId: string, newNodeId: string) => {
+    handleNodeIdEditGranular(nodeId, newNodeId);
+    toast.success('Node ID updated');
+  }, [handleNodeIdEditGranular]);
+
+  const handleMarkerEdit = useCallback((nodeId: string, marker: string, isStart: boolean) => {
+    handleMarkerEditGranular(nodeId, marker, isStart);
+    toast.success(`${isStart ? 'Start' : 'End'} marker updated`);
+  }, [handleMarkerEditGranular]);
+  const handleMarkerToggle = useCallback((nodeId: string, markerType: 'start' | 'end', enabled: boolean) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId
+          ? { 
+              ...node, 
+              data: { 
+                ...node.data, 
+                [markerType === 'start' ? 'isStartNode' : 'isEndNode']: enabled,
+                [markerType === 'start' ? 'startMarker' : 'endMarker']: enabled ? (markerType === 'start' ? '▶' : '🏁') : undefined
+              } 
+            }
+          : node
+      )
+    );
+    toast.success(`${markerType === 'start' ? 'Start' : 'End'} marker ${enabled ? 'added' : 'removed'}`);
+  }, [setNodes]);
+  // Interactive editing functions
   const handleNodeDelete = useCallback((nodeId: string) => {
     setNodes((nds) => nds.filter((node) => node.id !== nodeId));
     setEdges((eds) => eds.filter((edge) => edge.source !== nodeId && edge.target !== nodeId));
     toast.success('Node deleted');
   }, [setNodes, setEdges]);
-
   const handleNodeColorChange = useCallback((nodeId: string, backgroundColor: string, borderColor: string) => {
     setNodes((nds) =>
       nds.map((node) =>
@@ -196,7 +266,6 @@ Step 6: Receive insights and recommendations`);
     );
     toast.success('Node color updated');
   }, [setNodes]);
-
   const generateFlowchart = useCallback(() => {
     const parsedSteps = parsePrompt(promptText);
     
@@ -220,9 +289,9 @@ Step 6: Receive insights and recommendations`);
     const nodeWidth = 200;
     const nodeHeight = 60;
     const verticalSpacing = 100;
-    const horizontalSpacing = 250;
-
-    Object.keys(stepGroups).sort((a, b) => parseInt(a) - parseInt(b)).forEach((levelKey) => {
+    const horizontalSpacing = 250;    const sortedLevels = Object.keys(stepGroups).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    sortedLevels.forEach((levelKey, levelIndex) => {
       const levelSteps = stepGroups[parseInt(levelKey)];
       const isParallelLevel = levelSteps.length > 1;
       
@@ -240,9 +309,17 @@ Step 6: Receive insights and recommendations`);
             position: { x: xPosition, y: yPosition },
             data: { 
               label: step.text,
+              nodeId: step.id,
               backgroundColor: isParallelLevel ? '#fef3c7' : '#dbeafe',
               borderColor: isParallelLevel ? '#f59e0b' : '#3b82f6',
-              onEdit: handleNodeEdit,
+              isStartNode: levelIndex === 0 && index === 0,
+              isEndNode: levelIndex === sortedLevels.length - 1,
+              startMarker: levelIndex === 0 && index === 0 ? '▶' : undefined,
+              endMarker: levelIndex === sortedLevels.length - 1 ? '🏁' : undefined,
+              onEdit: handleNodeEditGranular,
+              onIdEdit: handleNodeIdEditGranular,
+              onMarkerEdit: handleMarkerEditGranular,
+              onMarkerToggle: handleMarkerToggle,
               onDelete: handleNodeDelete,
               onColorChange: handleNodeColorChange,
             } as EditableNodeData,
@@ -259,9 +336,17 @@ Step 6: Receive insights and recommendations`);
           position: { x: -nodeWidth / 2, y: yPosition },
           data: { 
             label: step.text,
+            nodeId: step.id,
             backgroundColor: '#dbeafe',
             borderColor: '#3b82f6',
-            onEdit: handleNodeEdit,
+            isStartNode: levelIndex === 0,
+            isEndNode: levelIndex === sortedLevels.length - 1,
+            startMarker: levelIndex === 0 ? '▶' : undefined,
+            endMarker: levelIndex === sortedLevels.length - 1 ? '🏁' : undefined,
+            onEdit: handleNodeEditGranular,
+            onIdEdit: handleNodeIdEditGranular,
+            onMarkerEdit: handleMarkerEditGranular,
+            onMarkerToggle: handleMarkerToggle,
             onDelete: handleNodeDelete,
             onColorChange: handleNodeColorChange,
           } as EditableNodeData,
@@ -271,21 +356,17 @@ Step 6: Receive insights and recommendations`);
       }
 
       yPosition += verticalSpacing;
-    });
-
-    // Create edges
-    const sortedLevels = Object.keys(stepGroups)
+    });    // Create edges
+    const edgeLevels = Object.keys(stepGroups)
       .map((n) => parseInt(n))
-      .sort((a, b) => a - b);
-
-    for (let i = 1; i < sortedLevels.length; i++) {
-      const currentLevel = sortedLevels[i];
-      const prevLevel = sortedLevels[i - 1];
+      .sort((a, b) => a - b);    for (let i = 1; i < edgeLevels.length; i++) {
+      const currentLevel = edgeLevels[i];
+      const prevLevel = edgeLevels[i - 1];
       const currentSteps = stepGroups[currentLevel];
       const prevSteps = stepGroups[prevLevel] || [];
 
       currentSteps.forEach((nextStep) => {
-        const cont = (nextStep as any).continuesFromIds as string[] | undefined;
+        const cont = (nextStep as ParsedStep & { continuesFromIds?: string[] }).continuesFromIds;
         if (cont && cont.length) {
           // Explicit continuation: connect only from specified sources
           cont.forEach((sourceId) => {
@@ -328,19 +409,21 @@ Step 6: Receive insights and recommendations`);
     setNodes(newNodes);
     setEdges(newEdges);
     toast.success('Flowchart generated successfully!');
-  }, [promptText, setNodes, setEdges, parsePrompt, handleNodeEdit, handleNodeDelete, handleNodeColorChange]);
-
+  }, [promptText, setNodes, setEdges, parsePrompt, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange]);
   const addNewNode = useCallback(() => {
     const newNodeId = `node-${Date.now()}`;
     const newNode: Node = {
       id: newNodeId,
       type: 'editable',
-      position: { x: Math.random() * 400 - 200, y: Math.random() * 400 },
-      data: {
+      position: { x: Math.random() * 400 - 200, y: Math.random() * 400 },      data: {
         label: 'New Node',
+        nodeId: newNodeId,
         backgroundColor: '#dbeafe',
         borderColor: '#3b82f6',
-        onEdit: handleNodeEdit,
+        onEdit: handleNodeEditGranular,
+        onIdEdit: handleNodeIdEditGranular,
+        onMarkerEdit: handleMarkerEditGranular,
+        onMarkerToggle: handleMarkerToggle,
         onDelete: handleNodeDelete,
         onColorChange: handleNodeColorChange,
       } as EditableNodeData,
@@ -350,8 +433,7 @@ Step 6: Receive insights and recommendations`);
     
     setNodes((nds) => [...nds, newNode]);
     toast.success('New node added');
-  }, [setNodes, handleNodeEdit, handleNodeDelete, handleNodeColorChange]);
-
+  }, [setNodes, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange]);
   const onConnect = useCallback(
     (params: Connection) => {
       setEdges((eds) => addEdge({
@@ -364,12 +446,10 @@ Step 6: Receive insights and recommendations`);
     },
     [setEdges]
   );
-
   const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
     setEdges((eds) => eds.filter((edge) => !edgesToDelete.find(e => e.id === edge.id)));
     toast.success('Connection deleted');
   }, [setEdges]);
-
   const clearDiagram = useCallback(() => {
     setNodes([]);
     setEdges([]);
@@ -537,9 +617,7 @@ Step 6: Receive insights and recommendations`);
         </Card>
       </div>
 
-      {/* Right Panel - Flowchart */}
-      <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>
-        <FlowchartToolbar 
+      {/* Right Panel - Flowchart */}      <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>        <FlowchartToolbar 
           onAddNode={addNewNode}
           onExportPNG={exportToPNG}
           onExportPDF={exportToPDF}

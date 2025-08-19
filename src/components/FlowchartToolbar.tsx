@@ -23,9 +23,7 @@ export const FlowchartToolbar: React.FC<FlowchartToolbarProps> = ({
   onSaveProject
 }) => {
   return (
-    <Card className="absolute top-4 right-4 z-10 p-2">
-      <div className="flex gap-2">
-        <Button onClick={onAddNode} size="sm" variant="outline">
+    <Card className="absolute top-4 right-4 z-10 p-2">      <div className="flex gap-2">        <Button onClick={onAddNode} size="sm" variant="outline">
           <Plus className="w-4 h-4 mr-1" />
           Add Node
         </Button>
