@@ -378,8 +378,7 @@ Step 6: Receive insights and recommendations`);
 
   const exportToPNG = useCallback(async () => {
     if (!reactFlowWrapper.current) return;
-    
-    try {
+      try {
       // Get only the ReactFlow viewport for cleaner export
       const reactFlowElement = reactFlowWrapper.current.querySelector('.react-flow');
       if (!reactFlowElement) {
@@ -392,16 +391,19 @@ Step 6: Receive insights and recommendations`);
         scale: 2,
         useCORS: true,
         allowTaint: true,
+        foreignObjectRendering: true,
         ignoreElements: (element) => {
-          // Ignore toolbar and other UI elements outside the flowchart
-          return element.classList.contains('toolbar') || 
-                 element.classList.contains('absolute') ||
-                 element.closest('.absolute') !== null;
+          // Only ignore control panels and toolbar, preserve all flowchart elements including edges
+          return element.closest('.react-flow__controls') !== null ||
+                 element.closest('.react-flow__minimap') !== null ||
+                 (element.closest('[data-testid="rf__toolbar"]') !== null) ||
+                 (element.classList.contains('absolute') && 
+                  element.closest('.react-flow__viewport') === null);
         }
       });
       
       const link = document.createElement('a');
-      link.download = `flowchart-${new Date().toISOString().split('T')[0]}.png`;
+      link.download = `prompttoflow-${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
       
@@ -422,17 +424,21 @@ Step 6: Receive insights and recommendations`);
         toast.error('Could not find flowchart to export');
         return;
       }
-      
-      const canvas = await html2canvas(reactFlowElement as HTMLElement, {
+        const canvas = await html2canvas(reactFlowElement as HTMLElement, {
         backgroundColor: '#f8fafc',
         scale: 2,
         useCORS: true,
         allowTaint: true,
+        foreignObjectRendering: true,
         ignoreElements: (element) => {
-          // Ignore toolbar and other UI elements outside the flowchart
-          return element.classList.contains('toolbar') || 
-                 element.classList.contains('absolute') ||
-                 element.closest('.absolute') !== null;
+          // Only ignore control panels and toolbar, preserve edges and nodes
+          return element.closest('.react-flow__controls') !== null ||
+                 element.closest('.react-flow__minimap') !== null ||
+                 element.closest('[data-testid="rf__toolbar"]') !== null ||
+                 (element.classList.contains('absolute') && 
+                  !element.closest('.react-flow__viewport') &&
+                  !element.closest('.react-flow__edge') &&
+                  !element.closest('.react-flow__edges'));
         }
       });
       
@@ -461,7 +467,7 @@ Step 6: Receive insights and recommendations`);
         heightLeft -= pdfHeight;
       }
       
-      pdf.save(`flowchart-${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`prompttoflow-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.success('Flowchart exported as PDF');
     } catch (error) {
       toast.error('Failed to export as PDF');
