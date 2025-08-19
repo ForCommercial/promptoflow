@@ -43,6 +43,12 @@ export const UserGuide: React.FC = () => {
                 After parallel branches (2a, 2b), the next step automatically becomes Step 3
               </p>
             </div>
+            <div>
+              <Badge variant="outline" className="mb-1">Selective Continuation</Badge>
+              <p className="text-muted-foreground">
+                Continue from a specific branch using "from": e.g., "Step 3: from 2a: Next step" or "Step 3: (from 2a) Next step". Multiple: "from 2a,2c".
+              </p>
+            </div>
           </div>
         </div>
 
@@ -58,7 +64,7 @@ export const UserGuide: React.FC = () => {
               <div>Step 1: User Registration</div>
               <div>Step 2a: Email Verification</div>
               <div>Step 2b: Phone Verification</div>
-              <div>Step 3: Profile Setup</div>
+              <div>Step 3: from 2a: Profile Setup</div>
               <div>Step 4: Dashboard Access</div>
             </div>
             

@@ -32,6 +32,7 @@ interface ParsedStep {
   branch?: string;
   isParallel: boolean;
   parentId?: string;
+  continuesFromIds?: string[];
 }
 
 const FlowchartApp = () => {
@@ -55,72 +56,109 @@ Step 6: Receive insights and recommendations`);
 
   const parsePrompt = useCallback((text: string): ParsedStep[] => {
     const lines = text.split('\n').filter(line => line.trim());
-    const steps: ParsedStep[] = [];
+    const rawSteps: (ParsedStep & { _originalLevel: number; _continuesFromTokens?: string[] })[] = [];
     
     lines.forEach((line, index) => {
       const trimmed = line.trim();
       
-      // Enhanced pattern matching for better step parsing
-      const stepMatch = trimmed.match(/^(?:Step\s+)?(\d+)([a-z]?)[\s\.\):\-]*(.+)$/i);
+      // Base match: Step X (optional branch a-z)
+      const baseMatch = trimmed.match(/^(?:Step\s+)?(\d+)([a-z]?)\s*[\.:)\-]*\s*(.*)$/i);
       
-      if (stepMatch) {
-        const [, stepNum, branch, text] = stepMatch;
-        const level = parseInt(stepNum);
-        const isParallel = !!branch;
+      if (baseMatch) {
+        const [, stepNumStr, branchLetter, restRaw] = baseMatch;
+        const originalLevel = parseInt(stepNumStr, 10);
+        const branch = branchLetter || undefined;
+        let rest = restRaw.trim();
+        let continuesFromTokens: string[] | undefined;
+
+        // Detect "(from 2a) ..." or "from 2a: ..." or "continue from 2a,2b - ..."
+        const fromParen = rest.match(/^\(\s*(?:from|continue\s+from)\s+([0-9]+[a-z]?(?:\s*,\s*[0-9]+[a-z]?)*?)\s*\)\s*[:\-]?\s*(.*)$/i);
+        const fromInline = rest.match(/^(?:from|continue\s+from)\s+([0-9]+[a-z]?(?:\s*,\s*[0-9]+[a-z]?)*?)\s*[:\-]?\s*(.*)$/i);
+        if (fromParen) {
+          continuesFromTokens = fromParen[1].split(/\s*,\s*/).map(s => s.toLowerCase());
+          rest = fromParen[2].trim();
+        } else if (fromInline) {
+          continuesFromTokens = fromInline[1].split(/\s*,\s*/).map(s => s.toLowerCase());
+          rest = fromInline[2].trim();
+        }
         
-        steps.push({
-          id: `step-${stepNum}${branch}`,
-          text: text.trim(),
-          level,
-          branch: branch || undefined,
-          isParallel,
-          parentId: isParallel ? `step-${level - 1}` : undefined
+        rawSteps.push({
+          id: `step-${stepNumStr}${branch || ''}`,
+          text: rest,
+          level: originalLevel,
+          branch,
+          isParallel: !!branch,
+          parentId: branch ? `step-${originalLevel - 1}` : undefined,
+          _originalLevel: originalLevel,
+          _continuesFromTokens: continuesFromTokens,
         });
       } else if (trimmed) {
         // Fallback for lines that don't match the pattern
-        steps.push({
-          id: `step-${index + 1}`,
+        const fallbackLevel = index + 1;
+        rawSteps.push({
+          id: `step-${fallbackLevel}`,
           text: trimmed,
-          level: index + 1,
-          isParallel: false
-        });
+          level: fallbackLevel,
+          isParallel: false,
+          _originalLevel: fallbackLevel,
+        } as any);
       }
     });
     
-    // Fix level progression for proper continuation after parallel branches
-    const fixedSteps = fixStepLevels(steps);
+    // Normalize levels and resolve continuation references
+    const fixedSteps = fixStepLevels(rawSteps as unknown as ParsedStep[]);
     return fixedSteps;
   }, []);
 
   const fixStepLevels = useCallback((steps: ParsedStep[]): ParsedStep[] => {
     if (steps.length === 0) return steps;
     
-    const levelGroups: { [key: number]: ParsedStep[] } = {};
-    steps.forEach(step => {
-      if (!levelGroups[step.level]) levelGroups[step.level] = [];
-      levelGroups[step.level].push(step);
+    // Group by original numeric level
+    const levelGroups: { [key: number]: (ParsedStep & { _originalLevel?: number; _continuesFromTokens?: string[] })[] } = {} as any;
+    (steps as any).forEach((step: any) => {
+      const ol = step._originalLevel ?? step.level;
+      if (!levelGroups[ol]) levelGroups[ol] = [];
+      levelGroups[ol].push(step);
     });
     
-    const sortedLevels = Object.keys(levelGroups).map(Number).sort((a, b) => a - b);
-    const result: ParsedStep[] = [];
+    const sortedOriginalLevels = Object.keys(levelGroups).map(Number).sort((a, b) => a - b);
+    const oldToNewLevel: Record<number, number> = {};
+    const result: (ParsedStep & { _continuesFromTokens?: string[]; continuesFromIds?: string[] })[] = [];
     let currentOutputLevel = 1;
     
-    sortedLevels.forEach((originalLevel) => {
+    // Build mapping and remap step ids/levels
+    sortedOriginalLevels.forEach((originalLevel) => {
+      oldToNewLevel[originalLevel] = currentOutputLevel;
       const stepsAtLevel = levelGroups[originalLevel];
-      
-      // Update all steps at this level to use the current output level
-      stepsAtLevel.forEach(step => {
+      stepsAtLevel.forEach((step) => {
+        const newLevel = currentOutputLevel;
         result.push({
           ...step,
-          level: currentOutputLevel,
-          id: step.branch ? `step-${currentOutputLevel}${step.branch}` : `step-${currentOutputLevel}`
+          level: newLevel,
+          id: step.branch ? `step-${newLevel}${step.branch}` : `step-${newLevel}`,
         });
       });
-      
       currentOutputLevel++;
     });
+
+    // Resolve continuesFrom tokens to actual ids using the new level mapping
+    result.forEach((step: any) => {
+      if (step._continuesFromTokens && step._continuesFromTokens.length) {
+        const ids: string[] = [];
+        step._continuesFromTokens.forEach((token: string) => {
+          const m = token.match(/^(\d+)([a-z]?)$/i);
+          if (m) {
+            const oldLevel = parseInt(m[1], 10);
+            const branch = m[2] || '';
+            const mappedLevel = oldToNewLevel[oldLevel] ?? oldLevel;
+            ids.push(`step-${mappedLevel}${branch}`);
+          }
+        });
+        step.continuesFromIds = ids;
+      }
+    });
     
-    return result;
+    return result as ParsedStep[];
   }, []);
 
   // Interactive editing functions
@@ -236,62 +274,55 @@ Step 6: Receive insights and recommendations`);
     });
 
     // Create edges
-    for (let i = 0; i < Object.keys(stepGroups).length - 1; i++) {
-      const currentLevel = parseInt(Object.keys(stepGroups).sort((a, b) => parseInt(a) - parseInt(b))[i]);
-      const nextLevel = parseInt(Object.keys(stepGroups).sort((a, b) => parseInt(a) - parseInt(b))[i + 1]);
-      
+    const sortedLevels = Object.keys(stepGroups)
+      .map((n) => parseInt(n))
+      .sort((a, b) => a - b);
+
+    for (let i = 1; i < sortedLevels.length; i++) {
+      const currentLevel = sortedLevels[i];
+      const prevLevel = sortedLevels[i - 1];
       const currentSteps = stepGroups[currentLevel];
-      const nextSteps = stepGroups[nextLevel];
-      
-      if (currentSteps.length === 1 && nextSteps.length === 1) {
-        // Simple connection
-        newEdges.push({
-          id: `e-${currentSteps[0].id}-${nextSteps[0].id}`,
-          source: currentSteps[0].id,
-          target: nextSteps[0].id,
-          type: 'smoothstep',
-          style: { stroke: '#6b7280', strokeWidth: 2 },
-          deletable: true
-        });
-      } else if (currentSteps.length === 1 && nextSteps.length > 1) {
-        // Fan out from single to multiple
-        nextSteps.forEach(nextStep => {
-          newEdges.push({
-            id: `e-${currentSteps[0].id}-${nextStep.id}`,
-            source: currentSteps[0].id,
-            target: nextStep.id,
-            type: 'smoothstep',
-            style: { stroke: '#f59e0b', strokeWidth: 2 },
-            deletable: true
-          });
-        });
-      } else if (currentSteps.length > 1 && nextSteps.length === 1) {
-        // Fan in from multiple to single
-        currentSteps.forEach(currentStep => {
-          newEdges.push({
-            id: `e-${currentStep.id}-${nextSteps[0].id}`,
-            source: currentStep.id,
-            target: nextSteps[0].id,
-            type: 'smoothstep',
-            style: { stroke: '#f59e0b', strokeWidth: 2 },
-            deletable: true
-          });
-        });
-      } else {
-        // Multiple to multiple (connect each to each)
-        currentSteps.forEach(currentStep => {
-          nextSteps.forEach(nextStep => {
+      const prevSteps = stepGroups[prevLevel] || [];
+
+      currentSteps.forEach((nextStep) => {
+        const cont = (nextStep as any).continuesFromIds as string[] | undefined;
+        if (cont && cont.length) {
+          // Explicit continuation: connect only from specified sources
+          cont.forEach((sourceId) => {
             newEdges.push({
-              id: `e-${currentStep.id}-${nextStep.id}`,
-              source: currentStep.id,
+              id: `e-${sourceId}-${nextStep.id}`,
+              source: sourceId,
               target: nextStep.id,
               type: 'smoothstep',
-              style: { stroke: '#6b7280', strokeWidth: 1 },
-              deletable: true
+              style: { stroke: '#6b7280', strokeWidth: 2 },
+              deletable: true,
             });
           });
-        });
-      }
+        } else {
+          // Default behavior: connect from previous level
+          if (prevSteps.length === 1) {
+            newEdges.push({
+              id: `e-${prevSteps[0].id}-${nextStep.id}`,
+              source: prevSteps[0].id,
+              target: nextStep.id,
+              type: 'smoothstep',
+              style: { stroke: '#6b7280', strokeWidth: 2 },
+              deletable: true,
+            });
+          } else if (prevSteps.length > 1) {
+            prevSteps.forEach((prevStep) => {
+              newEdges.push({
+                id: `e-${prevStep.id}-${nextStep.id}`,
+                source: prevStep.id,
+                target: nextStep.id,
+                type: 'smoothstep',
+                style: { stroke: '#f59e0b', strokeWidth: 2 },
+                deletable: true,
+              });
+            });
+          }
+        }
+      });
     }
 
     setNodes(newNodes);
