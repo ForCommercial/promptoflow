@@ -23,6 +23,7 @@ import { Download, Play, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { EditableNode, EditableNodeData } from './EditableNode';
 import { FlowchartToolbar } from './FlowchartToolbar';
+import { UserGuide } from './UserGuide';
 
 interface ParsedStep {
   id: string;
@@ -35,16 +36,18 @@ interface ParsedStep {
 
 const FlowchartApp = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [promptText, setPromptText] = useState(`Step 1: Start
+  const [promptText, setPromptText] = useState(`Step 1: Start project
 Step 2a: Resume Upload
-Step 2b: Skills/Interests Input
+Step 2b: Skills/Interests Input  
 Step 3: AI matches jobs/domains
-Step 4: AI suggests roadmaps and courses
+Step 4a: Technical roadmap
+Step 4b: Soft skills development
 Step 5: Company search and interview prep
-Step 6: Receive insights`);
+Step 6: Receive insights and recommendations`);
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [showGuide, setShowGuide] = useState(false);
 
   const nodeTypes: NodeTypes = useMemo(() => ({
     editable: EditableNode,
@@ -57,7 +60,7 @@ Step 6: Receive insights`);
     lines.forEach((line, index) => {
       const trimmed = line.trim();
       
-      // Match patterns like "Step 1:", "Step 2a:", "2.", "1)", etc.
+      // Enhanced pattern matching for better step parsing
       const stepMatch = trimmed.match(/^(?:Step\s+)?(\d+)([a-z]?)[\s\.\):\-]*(.+)$/i);
       
       if (stepMatch) {
@@ -84,7 +87,40 @@ Step 6: Receive insights`);
       }
     });
     
-    return steps;
+    // Fix level progression for proper continuation after parallel branches
+    const fixedSteps = fixStepLevels(steps);
+    return fixedSteps;
+  }, []);
+
+  const fixStepLevels = useCallback((steps: ParsedStep[]): ParsedStep[] => {
+    if (steps.length === 0) return steps;
+    
+    const levelGroups: { [key: number]: ParsedStep[] } = {};
+    steps.forEach(step => {
+      if (!levelGroups[step.level]) levelGroups[step.level] = [];
+      levelGroups[step.level].push(step);
+    });
+    
+    const sortedLevels = Object.keys(levelGroups).map(Number).sort((a, b) => a - b);
+    const result: ParsedStep[] = [];
+    let currentOutputLevel = 1;
+    
+    sortedLevels.forEach((originalLevel) => {
+      const stepsAtLevel = levelGroups[originalLevel];
+      
+      // Update all steps at this level to use the current output level
+      stepsAtLevel.forEach(step => {
+        result.push({
+          ...step,
+          level: currentOutputLevel,
+          id: step.branch ? `step-${currentOutputLevel}${step.branch}` : `step-${currentOutputLevel}`
+        });
+      });
+      
+      currentOutputLevel++;
+    });
+    
+    return result;
   }, []);
 
   // Interactive editing functions
@@ -214,7 +250,8 @@ Step 6: Receive insights`);
           source: currentSteps[0].id,
           target: nextSteps[0].id,
           type: 'smoothstep',
-          style: { stroke: '#6b7280', strokeWidth: 2 }
+          style: { stroke: '#6b7280', strokeWidth: 2 },
+          deletable: true
         });
       } else if (currentSteps.length === 1 && nextSteps.length > 1) {
         // Fan out from single to multiple
@@ -224,7 +261,8 @@ Step 6: Receive insights`);
             source: currentSteps[0].id,
             target: nextStep.id,
             type: 'smoothstep',
-            style: { stroke: '#f59e0b', strokeWidth: 2 }
+            style: { stroke: '#f59e0b', strokeWidth: 2 },
+            deletable: true
           });
         });
       } else if (currentSteps.length > 1 && nextSteps.length === 1) {
@@ -235,7 +273,8 @@ Step 6: Receive insights`);
             source: currentStep.id,
             target: nextSteps[0].id,
             type: 'smoothstep',
-            style: { stroke: '#f59e0b', strokeWidth: 2 }
+            style: { stroke: '#f59e0b', strokeWidth: 2 },
+            deletable: true
           });
         });
       } else {
@@ -247,7 +286,8 @@ Step 6: Receive insights`);
               source: currentStep.id,
               target: nextStep.id,
               type: 'smoothstep',
-              style: { stroke: '#6b7280', strokeWidth: 1 }
+              style: { stroke: '#6b7280', strokeWidth: 1 },
+              deletable: true
             });
           });
         });
@@ -282,9 +322,22 @@ Step 6: Receive insights`);
   }, [setNodes, handleNodeEdit, handleNodeDelete, handleNodeColorChange]);
 
   const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    (params: Connection) => {
+      setEdges((eds) => addEdge({
+        ...params,
+        type: 'smoothstep',
+        style: { stroke: '#6b7280', strokeWidth: 2 },
+        deletable: true
+      }, eds));
+      toast.success('Connection created');
+    },
     [setEdges]
   );
+
+  const onEdgesDelete = useCallback((edgesToDelete: Edge[]) => {
+    setEdges((eds) => eds.filter((edge) => !edgesToDelete.find(e => e.id === edge.id)));
+    toast.success('Connection deleted');
+  }, [setEdges]);
 
   const clearDiagram = useCallback(() => {
     setNodes([]);
@@ -296,14 +349,29 @@ Step 6: Receive insights`);
     if (!reactFlowWrapper.current) return;
     
     try {
-      const canvas = await html2canvas(reactFlowWrapper.current, {
+      // Get only the ReactFlow viewport for cleaner export
+      const reactFlowElement = reactFlowWrapper.current.querySelector('.react-flow');
+      if (!reactFlowElement) {
+        toast.error('Could not find flowchart to export');
+        return;
+      }
+      
+      const canvas = await html2canvas(reactFlowElement as HTMLElement, {
         backgroundColor: '#f8fafc',
         scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: (element) => {
+          // Ignore toolbar and other UI elements outside the flowchart
+          return element.classList.contains('toolbar') || 
+                 element.classList.contains('absolute') ||
+                 element.closest('.absolute') !== null;
+        }
       });
       
       const link = document.createElement('a');
-      link.download = 'flowchart.png';
-      link.href = canvas.toDataURL();
+      link.download = `flowchart-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
       
       toast.success('Flowchart exported as PNG');
@@ -317,31 +385,52 @@ Step 6: Receive insights`);
     if (!reactFlowWrapper.current) return;
     
     try {
-      const canvas = await html2canvas(reactFlowWrapper.current, {
+      // Get only the ReactFlow viewport for cleaner export
+      const reactFlowElement = reactFlowWrapper.current.querySelector('.react-flow');
+      if (!reactFlowElement) {
+        toast.error('Could not find flowchart to export');
+        return;
+      }
+      
+      const canvas = await html2canvas(reactFlowElement as HTMLElement, {
         backgroundColor: '#f8fafc',
         scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: (element) => {
+          // Ignore toolbar and other UI elements outside the flowchart
+          return element.classList.contains('toolbar') || 
+                 element.classList.contains('absolute') ||
+                 element.closest('.absolute') !== null;
+        }
       });
       
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF();
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF({
+        orientation: canvas.width > canvas.height ? 'landscape' : 'portrait',
+        unit: 'mm',
+        format: 'a4'
+      });
       
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
       let position = 0;
       
       pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      heightLeft -= pdfHeight;
       
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+        heightLeft -= pdfHeight;
       }
       
-      pdf.save('flowchart.pdf');
+      pdf.save(`flowchart-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.success('Flowchart exported as PDF');
     } catch (error) {
       toast.error('Failed to export as PDF');
@@ -383,7 +472,7 @@ Step 6: Receive insights`);
               />
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 mb-3">
               <Button onClick={generateFlowchart} className="flex-1">
                 <Play className="w-4 h-4 mr-2" />
                 Generate
@@ -393,6 +482,20 @@ Step 6: Receive insights`);
                 Clear
               </Button>
             </div>
+            
+            <Button 
+              variant="secondary" 
+              onClick={() => setShowGuide(!showGuide)} 
+              className="w-full"
+            >
+              {showGuide ? 'Hide Guide' : 'Show Guide & Examples'}
+            </Button>
+            
+            {showGuide && (
+              <div className="mt-4">
+                <UserGuide />
+              </div>
+            )}
           </div>
         </Card>
       </div>
@@ -412,11 +515,15 @@ Step 6: Receive insights`);
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
+          onEdgesDelete={onEdgesDelete}
+          deleteKeyCode={['Backspace', 'Delete']}
           fitView
           fitViewOptions={{ padding: 0.2 }}
           minZoom={0.2}
           maxZoom={2}
           style={{ backgroundColor: '#f8fafc' }}
+          edgesFocusable={true}
+          edgesReconnectable={true}
         >
           <Background color="#e2e8f0" size={1} />
           <Controls />
