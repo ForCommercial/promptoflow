@@ -454,9 +454,7 @@ Step 6: Receive insights and recommendations`);
     setNodes([]);
     setEdges([]);
     toast.info('Diagram cleared');
-  }, [setNodes, setEdges]);
-
-  const exportToPNG = useCallback(async () => {
+  }, [setNodes, setEdges]);  const exportToPNG = useCallback(async () => {
     if (!reactFlowWrapper.current) return;
       try {
       // Get only the ReactFlow viewport for cleaner export
@@ -466,19 +464,57 @@ Step 6: Receive insights and recommendations`);
         return;
       }
       
+      // Wait longer to ensure all edges are fully rendered and animations completed
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       const canvas = await html2canvas(reactFlowElement as HTMLElement, {
         backgroundColor: '#f8fafc',
         scale: 2,
         useCORS: true,
         allowTaint: true,
         foreignObjectRendering: true,
+        logging: false,
+        width: reactFlowElement.scrollWidth,
+        height: reactFlowElement.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Force all edge elements to be visible and styled properly
+          const clonedEdges = clonedDoc.querySelectorAll('.react-flow__edge, .react-flow__edge-path, .react-flow__edge path, .react-flow__edges');
+          clonedEdges.forEach((edge) => {
+            const element = edge as HTMLElement;
+            element.style.display = 'block';
+            element.style.visibility = 'visible';
+            element.style.opacity = '1';
+            element.style.pointerEvents = 'none';
+            
+            // Force stroke properties for SVG paths
+            if (element.tagName === 'path') {
+              element.style.stroke = element.style.stroke || '#6b7280';
+              element.style.strokeWidth = element.style.strokeWidth || '2';
+              element.style.fill = 'none';
+            }
+          });
+          
+          // Ensure SVG elements are properly styled
+          const svgElements = clonedDoc.querySelectorAll('svg');
+          svgElements.forEach((svg) => {
+            svg.style.display = 'block';
+            svg.style.visibility = 'visible';
+            svg.style.opacity = '1';
+          });
+          
+          // Force render all ReactFlow edge containers
+          const edgeContainers = clonedDoc.querySelectorAll('.react-flow__edges, .react-flow__edge-wrapper');
+          edgeContainers.forEach((container) => {
+            (container as HTMLElement).style.display = 'block';
+            (container as HTMLElement).style.visibility = 'visible';
+            (container as HTMLElement).style.opacity = '1';
+          });
+        },
         ignoreElements: (element) => {
-          // Only ignore control panels and toolbar, preserve all flowchart elements including edges
+          // Only ignore UI controls, keep all flowchart elements
           return element.closest('.react-flow__controls') !== null ||
                  element.closest('.react-flow__minimap') !== null ||
-                 (element.closest('[data-testid="rf__toolbar"]') !== null) ||
-                 (element.classList.contains('absolute') && 
-                  element.closest('.react-flow__viewport') === null);
+                 element.closest('[data-testid="rf__toolbar"]') !== null;
         }
       });
       
@@ -492,9 +528,7 @@ Step 6: Receive insights and recommendations`);
       toast.error('Failed to export as PNG');
       console.error('Export error:', error);
     }
-  }, []);
-
-  const exportToPDF = useCallback(async () => {
+  }, []);  const exportToPDF = useCallback(async () => {
     if (!reactFlowWrapper.current) return;
     
     try {
@@ -504,21 +538,58 @@ Step 6: Receive insights and recommendations`);
         toast.error('Could not find flowchart to export');
         return;
       }
-        const canvas = await html2canvas(reactFlowElement as HTMLElement, {
+      
+      // Wait longer to ensure all edges are fully rendered and animations completed
+      await new Promise(resolve => setTimeout(resolve, 300));
+        
+      const canvas = await html2canvas(reactFlowElement as HTMLElement, {
         backgroundColor: '#f8fafc',
         scale: 2,
         useCORS: true,
         allowTaint: true,
         foreignObjectRendering: true,
+        logging: false,
+        width: reactFlowElement.scrollWidth,
+        height: reactFlowElement.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Force all edge elements to be visible and styled properly
+          const clonedEdges = clonedDoc.querySelectorAll('.react-flow__edge, .react-flow__edge-path, .react-flow__edge path, .react-flow__edges');
+          clonedEdges.forEach((edge) => {
+            const element = edge as HTMLElement;
+            element.style.display = 'block';
+            element.style.visibility = 'visible';
+            element.style.opacity = '1';
+            element.style.pointerEvents = 'none';
+            
+            // Force stroke properties for SVG paths
+            if (element.tagName === 'path') {
+              element.style.stroke = element.style.stroke || '#6b7280';
+              element.style.strokeWidth = element.style.strokeWidth || '2';
+              element.style.fill = 'none';
+            }
+          });
+          
+          // Ensure SVG elements are properly styled
+          const svgElements = clonedDoc.querySelectorAll('svg');
+          svgElements.forEach((svg) => {
+            svg.style.display = 'block';
+            svg.style.visibility = 'visible';
+            svg.style.opacity = '1';
+          });
+          
+          // Force render all ReactFlow edge containers
+          const edgeContainers = clonedDoc.querySelectorAll('.react-flow__edges, .react-flow__edge-wrapper');
+          edgeContainers.forEach((container) => {
+            (container as HTMLElement).style.display = 'block';
+            (container as HTMLElement).style.visibility = 'visible';
+            (container as HTMLElement).style.opacity = '1';
+          });
+        },
         ignoreElements: (element) => {
-          // Only ignore control panels and toolbar, preserve edges and nodes
+          // Only ignore UI controls, keep all flowchart elements
           return element.closest('.react-flow__controls') !== null ||
                  element.closest('.react-flow__minimap') !== null ||
-                 element.closest('[data-testid="rf__toolbar"]') !== null ||
-                 (element.classList.contains('absolute') && 
-                  !element.closest('.react-flow__viewport') &&
-                  !element.closest('.react-flow__edge') &&
-                  !element.closest('.react-flow__edges'));
+                 element.closest('[data-testid="rf__toolbar"]') !== null;
         }
       });
       
