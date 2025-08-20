@@ -53,13 +53,25 @@ Step 6: Receive insights and recommendations`);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showGuide, setShowGuide] = useState(false);
-  
-  // Page management state
+    // Page management state
   const [allPageNodes, setAllPageNodes] = useState<Record<string, Node[]>>({});
   const [allPageEdges, setAllPageEdges] = useState<Record<string, Edge[]>>({});
   const [currentActivePage, setCurrentActivePage] = useState<string | null>(null);
   const [isPagesVisible, setIsPagesVisible] = useState(false);
   const [isSoftwareProject, setIsSoftwareProject] = useState(false);
+  
+  // Use refs to ensure we always have the latest state
+  const allPageNodesRef = useRef<Record<string, Node[]>>({});
+  const allPageEdgesRef = useRef<Record<string, Edge[]>>({});
+  
+  // Keep refs in sync with state
+  useEffect(() => {
+    allPageNodesRef.current = allPageNodes;
+  }, [allPageNodes]);
+  
+  useEffect(() => {
+    allPageEdgesRef.current = allPageEdges;
+  }, [allPageEdges]);
   const nodeTypes: NodeTypes = useMemo(() => ({
     editable: EditableNode,
   }), []);
@@ -565,46 +577,63 @@ Step 6: Receive insights and recommendations`);
           }
         }
       });
-    }
-
-    // Store in page-specific storage
-    setAllPageNodes(prev => ({ ...prev, [pageId]: newNodes }));
-    setAllPageEdges(prev => ({ ...prev, [pageId]: newEdges }));
+    }    // Store in page-specific storage
+    console.log('💾 Storing page content:', pageId);
+    console.log('💾 New Nodes Count:', newNodes.length);
+    console.log('💾 New Edges Count:', newEdges.length);
+      setAllPageNodes(prev => {
+      const updated = { ...prev, [pageId]: newNodes };
+      console.log('💾 Updated allPageNodes:', updated);
+      console.log('💾 setAllPageNodes - Setting ref manually');
+      // Manually update ref immediately to ensure synchronization
+      allPageNodesRef.current = updated;
+      return updated;
+    });
+    setAllPageEdges(prev => {
+      const updated = { ...prev, [pageId]: newEdges };
+      console.log('💾 Updated allPageEdges:', updated);
+      console.log('💾 setAllPageEdges - Setting ref manually');
+      // Manually update ref immediately to ensure synchronization
+      allPageEdgesRef.current = updated;
+      return updated;
+    });
     
     // Set as active page and display its content
     setCurrentActivePage(pageId);
     setNodes(newNodes);
     setEdges(newEdges);
     
-    toast.success(`Page flowchart generated successfully!`);
-  }, [parsePrompt, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange, setNodes, setEdges]);
-  // Effect to update displayed nodes/edges when active page changes
-  useEffect(() => {
-    if (currentActivePage && allPageNodes[currentActivePage] && allPageEdges[currentActivePage]) {
-      setNodes(allPageNodes[currentActivePage]);
-      setEdges(allPageEdges[currentActivePage]);
-    } else {
-      // If no active page, show main flowchart or empty
-      // You could store main flowchart separately if needed
-    }
-  }, [currentActivePage, allPageNodes, allPageEdges, setNodes, setEdges]);
-
-  // Handle page switching from PagesPanel
+    toast.success(`Page flowchart generated successfully!`);}, [parsePrompt, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange, setNodes, setEdges]);  // Handle page switching from PagesPanel
   const handlePageSwitch = useCallback((pageId: string) => {
+    console.log('🔄 Page Switch Requested:', pageId);
+    console.log('📊 All Page Nodes (state):', allPageNodes);
+    console.log('📊 All Page Nodes (ref):', allPageNodesRef.current);
+    console.log('🔗 All Page Edges (state):', allPageEdges);
+    console.log('🔗 All Page Edges (ref):', allPageEdgesRef.current);
+    console.log('🎯 Target Page Nodes:', allPageNodesRef.current[pageId]);
+    console.log('🎯 Target Page Edges:', allPageEdgesRef.current[pageId]);
+    
     setCurrentActivePage(pageId);
     
+    // Use refs to get the latest state
+    const pageNodes = allPageNodesRef.current[pageId];
+    const pageEdges = allPageEdgesRef.current[pageId];
+    
     // If the page has generated content, display it
-    if (allPageNodes[pageId] && allPageEdges[pageId]) {
-      setNodes(allPageNodes[pageId]);
-      setEdges(allPageEdges[pageId]);
+    if (pageNodes && pageEdges && pageNodes.length > 0) {
+      console.log('✅ Found content for page, switching...');
+      setNodes(pageNodes);
+      setEdges(pageEdges);
       toast.success(`Switched to page: ${pageId}`);
     } else {
+      console.log('❌ No content found for page, clearing canvas...');
       // Clear the canvas if page has no content
       setNodes([]);
       setEdges([]);
       toast.info(`Switched to empty page: ${pageId}`);
     }
-  }, [allPageNodes, allPageEdges, setNodes, setEdges]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps  
+  }, [setNodes, setEdges]); // Intentionally excluding allPageNodes/allPageEdges to use refs
 
   // Detect if it's a software project based on prompt content
   useEffect(() => {

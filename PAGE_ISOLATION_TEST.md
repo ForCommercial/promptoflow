@@ -1,11 +1,13 @@
 # Page Isolation Feature - Testing Guide
 
 ## Overview
+
 The page isolation feature has been successfully implemented! This allows users to create separate flowcharts for different pages/screens and switch between them without interference.
 
 ## ✅ Implementation Complete
 
-### Key Features Implemented:
+### Key Features Implemented
+
 1. **Page Management State**: Separate storage for each page's nodes and edges
 2. **Page-Specific Flowchart Generation**: Each page generates its own flowchart with unique IDs
 3. **Page Switching**: Click on different pages to switch between their flowcharts
@@ -16,28 +18,34 @@ The page isolation feature has been successfully implemented! This allows users 
 ## How to Test
 
 ### Step 1: Open the Application
+
 - Navigate to `http://localhost:8082` (development server should be running)
 - The application should load with the main flowchart interface
 
 ### Step 2: Enable Software Project Mode
+
 - Enter text containing software keywords in the prompt (e.g., "app", "login", "dashboard", "page")
 - Example prompt:
+
   ```
   Step 1: User opens app
   Step 2: Show login page
   Step 3: User enters credentials
   Step 4: Navigate to dashboard
   ```
+
 - The system should automatically detect it's a software project
 
 ### Step 3: Access Pages Panel
+
 - Look for the "Pages" button in the top-right area (should appear when software project is detected)
 - Click the "Pages" button to open the Pages Panel
 - You should see the Pages Panel with options to add pages
 
 ### Step 4: Create Pages
+
 1. **Add a Custom Page:**
-   - Click "Add Custom" 
+   - Click "Add Custom"
    - Enter a page name (e.g., "Login Page")
    - Press Enter or click "Add"
 
@@ -48,6 +56,7 @@ The page isolation feature has been successfully implemented! This allows users 
 3. **Bulk Create Pages:**
    - Click "Bulk Create Pages"
    - Enter multiple pages in format:
+
      ```
      Homepage:
      Step 1: User lands on homepage
@@ -59,9 +68,11 @@ The page isolation feature has been successfully implemented! This allows users 
      ```
 
 ### Step 5: Generate Page-Specific Flowcharts
+
 1. **Edit a Page:**
    - Click the edit icon (pencil) next to any page
    - Enter a prompt for that specific page:
+
      ```
      Step 1: Display login form
      Step 2: User enters email
@@ -69,6 +80,7 @@ The page isolation feature has been successfully implemented! This allows users 
      Step 4: Submit credentials
      Step 5: Validate and redirect
      ```
+
    - Click "Save & Generate Flow"
 
 2. **Observe Page Isolation:**
@@ -76,6 +88,7 @@ The page isolation feature has been successfully implemented! This allows users 
    - Nodes have page-specific IDs (e.g., `page-123-step-1`)
 
 ### Step 6: Test Page Switching
+
 1. **Switch Between Pages:**
    - Click on different page rows in the Pages Panel
    - Each page should show its own flowchart content
@@ -87,6 +100,7 @@ The page isolation feature has been successfully implemented! This allows users 
    - No mixing of flowcharts between pages
 
 ### Step 7: Verify Features
+
 - ✅ **Page Creation**: Can create pages via templates or custom names
 - ✅ **Page Editing**: Can add prompts to generate page-specific flowcharts  
 - ✅ **Page Switching**: Clicking pages switches the displayed flowchart
@@ -97,12 +111,14 @@ The page isolation feature has been successfully implemented! This allows users 
 
 ## Expected Behavior
 
-### Before Fix (Old Behavior):
+### Before Fix (Old Behavior)
+
 - All page flowcharts appeared on the same canvas
 - Generated flowcharts would overlay each other
 - No way to view individual page flowcharts separately
 
 ### After Fix (New Behavior): ✅
+
 - Each page has its own isolated flowchart
 - Switching pages shows only that page's content
 - Clear visual separation with cyan theme for page flowcharts
@@ -110,18 +126,21 @@ The page isolation feature has been successfully implemented! This allows users 
 
 ## Technical Implementation Details
 
-### Key Functions:
+### Key Functions
+
 - `handleGeneratePageFlowchart()`: Creates page-specific flowcharts with unique IDs
 - `handlePageSwitch()`: Switches between page flowcharts
 - `useEffect()`: Updates displayed content when active page changes
 
-### State Management:
+### State Management
+
 - `allPageNodes`: Storage for all page-specific nodes
 - `allPageEdges`: Storage for all page-specific edges  
 - `currentActivePage`: Tracks which page is currently active
 - `isPagesVisible`: Controls Pages Panel visibility
 
-### Page-Specific Features:
+### Page-Specific Features
+
 - Unique node IDs: `${pageId}-${step.id}`
 - Unique edge IDs: `${pageId}-e-${source}-${target}`
 - Cyan color theme: `#f0fdfa` background, `#0d9488` border
