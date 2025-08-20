@@ -19,8 +19,10 @@ import jsPDF from 'jspdf';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Download, Play, Trash2 } from 'lucide-react';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Download, Play, Trash2, Menu } from 'lucide-react';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { EditableNode, EditableNodeData } from './EditableNode';
 import { FlowchartToolbar } from './FlowchartToolbar';
 import { UserGuide } from './UserGuide';
@@ -37,6 +39,8 @@ interface ParsedStep {
 
 const FlowchartApp = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [promptText, setPromptText] = useState(`Step 1: Start project
 Step 2a: Resume Upload
 Step 2b: Skills/Interests Input  
@@ -625,7 +629,6 @@ Step 6: Receive insights and recommendations`);
       console.error('Export error:', error);
     }
   }, []);
-
   const saveProject = useCallback(() => {
     const project = {
       promptText,
@@ -638,57 +641,106 @@ Step 6: Receive insights and recommendations`);
     toast.success('Project saved locally');
   }, [promptText, nodes, edges]);
 
-  return (
-    <div className="h-screen flex">
-      {/* Left Panel - Input */}
-      <div className="w-1/3 p-4 border-r border-border bg-background">
-        <Card className="h-full p-4">
-          <div className="flex flex-col h-full">
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold mb-2">Prompt to Flowchart</h2>
-              <p className="text-sm text-muted-foreground">
-                Enter your structured plan below. Use format like "Step 1:", "Step 2a:", etc.
-              </p>
-            </div>
-            
-            <div className="flex-1 mb-4">
-              <Textarea
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                placeholder="Enter your plan here..."
-                className="h-full resize-none"
-              />
-            </div>
-            
-            <div className="flex gap-2 mb-3">
-              <Button onClick={generateFlowchart} className="flex-1">
-                <Play className="w-4 h-4 mr-2" />
-                Generate
-              </Button>
-              <Button variant="outline" onClick={clearDiagram}>
-                <Trash2 className="w-4 h-4 mr-2" />
-                Clear
-              </Button>
-            </div>
-            
-            <Button 
-              variant="secondary" 
-              onClick={() => setShowGuide(!showGuide)} 
-              className="w-full"
-            >
-              {showGuide ? 'Hide Guide' : 'Show Guide & Examples'}
-            </Button>
-            
-            {showGuide && (
-              <div className="mt-4">
-                <UserGuide />
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
+  // Close drawer on mobile after certain actions
+  const handleGenerateFlowchart = useCallback(() => {
+    generateFlowchart();
+    if (isMobile) {
+      setIsDrawerOpen(false);
+    }
+  }, [generateFlowchart, isMobile]);
 
-      {/* Right Panel - Flowchart */}      <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>        <FlowchartToolbar 
+  const handleClearDiagram = useCallback(() => {
+    clearDiagram();
+    if (isMobile) {
+      setIsDrawerOpen(false);
+    }
+  }, [clearDiagram, isMobile]);
+
+  // Prompt Panel Content Component
+  const PromptPanelContent = () => (
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
+        <h2 className="text-xl font-semibold mb-2">Prompt to Flowchart</h2>
+        <p className="text-sm text-muted-foreground">
+          Enter your structured plan below. Use format like "Step 1:", "Step 2a:", etc.
+        </p>
+      </div>
+      
+      <div className="flex-1 mb-4">
+        <Textarea
+          value={promptText}
+          onChange={(e) => setPromptText(e.target.value)}
+          placeholder="Enter your plan here..."
+          className="h-full resize-none"
+        />
+      </div>
+      
+      <div className="flex gap-2 mb-3">
+        <Button onClick={handleGenerateFlowchart} className="flex-1">
+          <Play className="w-4 h-4 mr-2" />
+          Generate
+        </Button>
+        <Button variant="outline" onClick={handleClearDiagram}>
+          <Trash2 className="w-4 h-4 mr-2" />
+          Clear
+        </Button>
+      </div>
+      
+      <Button 
+        variant="secondary" 
+        onClick={() => setShowGuide(!showGuide)} 
+        className="w-full"
+      >
+        {showGuide ? 'Hide Guide' : 'Show Guide & Examples'}
+      </Button>
+      
+      {showGuide && (
+        <div className="mt-4">
+          <UserGuide />
+        </div>
+      )}
+    </div>
+  );
+  return (
+    <div className="h-screen flex flex-col md:flex-row">
+      {/* Desktop Left Panel */}
+      {!isMobile && (
+        <div className="w-1/3 p-4 border-r border-border bg-background">
+          <Card className="h-full p-4">
+            <PromptPanelContent />
+          </Card>
+        </div>
+      )}
+
+      {/* Main Panel - Flowchart */}
+      <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>
+        {/* Mobile Menu Button */}
+        {isMobile && (
+          <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
+            <SheetTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="icon"
+                className="absolute top-4 left-4 z-10 bg-white shadow-md"
+              >
+                <Menu className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[350px] sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle>Prompt to Flowchart</SheetTitle>
+                <SheetDescription>
+                  Enter your structured plan below. Use format like "Step 1:", "Step 2a:", etc.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-6 h-[calc(100vh-120px)]">
+                <PromptPanelContent />
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
+
+        <FlowchartToolbar 
           onAddNode={addNewNode}
           onExportPNG={exportToPNG}
           onExportPDF={exportToPDF}
