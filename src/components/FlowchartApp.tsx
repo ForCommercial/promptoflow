@@ -26,6 +26,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { EditableNode, EditableNodeData } from './EditableNode';
 import { FlowchartToolbar } from './FlowchartToolbar';
 import { UserGuide } from './UserGuide';
+import { PagesPanel, PageItem } from './PagesPanel';
 
 interface ParsedStep {
   id: string;
@@ -49,10 +50,16 @@ Step 4a: Technical roadmap
 Step 4b: Soft skills development
 Step 5: Company search and interview prep
 Step 6: Receive insights and recommendations`);
-
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showGuide, setShowGuide] = useState(false);
+  
+  // Page management state
+  const [allPageNodes, setAllPageNodes] = useState<Record<string, Node[]>>({});
+  const [allPageEdges, setAllPageEdges] = useState<Record<string, Edge[]>>({});
+  const [currentActivePage, setCurrentActivePage] = useState<string | null>(null);
+  const [isPagesVisible, setIsPagesVisible] = useState(false);
+  const [isSoftwareProject, setIsSoftwareProject] = useState(false);
   const nodeTypes: NodeTypes = useMemo(() => ({
     editable: EditableNode,
   }), []);
@@ -408,12 +415,205 @@ Step 6: Receive insights and recommendations`);
           }
         }
       });
-    }
-
-    setNodes(newNodes);
+    }    setNodes(newNodes);
     setEdges(newEdges);
     toast.success('Flowchart generated successfully!');
   }, [promptText, setNodes, setEdges, parsePrompt, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange]);
+
+  // Handle page-specific flowchart generation
+  const handleGeneratePageFlowchart = useCallback((pageId: string, prompt: string) => {
+    const parsedSteps = parsePrompt(prompt);
+    
+    if (parsedSteps.length === 0) {
+      toast.error('Please enter a valid plan with steps for this page');
+      return;
+    }
+
+    const newNodes: Node[] = [];
+    const newEdges: Edge[] = [];
+    
+    // Group parallel steps
+    const stepGroups = parsedSteps.reduce((groups, step) => {
+      const key = step.level;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(step);
+      return groups;
+    }, {} as Record<number, ParsedStep[]>);
+
+    let yPosition = 0;
+    const nodeWidth = 200;
+    const nodeHeight = 60;
+    const verticalSpacing = 100;
+    const horizontalSpacing = 250;
+    
+    const sortedLevels = Object.keys(stepGroups).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    sortedLevels.forEach((levelKey, levelIndex) => {
+      const levelSteps = stepGroups[parseInt(levelKey)];
+      const isParallelLevel = levelSteps.length > 1;
+      
+      if (isParallelLevel) {
+        // Position parallel nodes side by side
+        const totalWidth = (levelSteps.length - 1) * horizontalSpacing;
+        const startX = -totalWidth / 2;
+        
+        levelSteps.forEach((step, index) => {
+          const xPosition = startX + (index * horizontalSpacing);
+          
+          newNodes.push({
+            id: `${pageId}-${step.id}`,
+            type: 'editable',
+            position: { x: xPosition, y: yPosition },
+            data: { 
+              label: step.text,
+              nodeId: `${pageId}-${step.id}`,
+              backgroundColor: '#f0fdfa', // Cyan theme for page nodes
+              borderColor: '#0d9488',
+              isStartNode: levelIndex === 0 && index === 0,
+              isEndNode: levelIndex === sortedLevels.length - 1,
+              startMarker: levelIndex === 0 && index === 0 ? '▶' : undefined,
+              endMarker: levelIndex === sortedLevels.length - 1 ? '🏁' : undefined,
+              onEdit: handleNodeEditGranular,
+              onIdEdit: handleNodeIdEditGranular,
+              onMarkerEdit: handleMarkerEditGranular,
+              onMarkerToggle: handleMarkerToggle,
+              onDelete: handleNodeDelete,
+              onColorChange: handleNodeColorChange,
+            } as EditableNodeData,
+            sourcePosition: Position.Bottom,
+            targetPosition: Position.Top,
+          });
+        });
+      } else {
+        // Single node, centered
+        const step = levelSteps[0];
+        newNodes.push({
+          id: `${pageId}-${step.id}`,
+          type: 'editable',
+          position: { x: -nodeWidth / 2, y: yPosition },
+          data: { 
+            label: step.text,
+            nodeId: `${pageId}-${step.id}`,
+            backgroundColor: '#f0fdfa', // Cyan theme for page nodes
+            borderColor: '#0d9488',
+            isStartNode: levelIndex === 0,
+            isEndNode: levelIndex === sortedLevels.length - 1,
+            startMarker: levelIndex === 0 ? '▶' : undefined,
+            endMarker: levelIndex === sortedLevels.length - 1 ? '🏁' : undefined,
+            onEdit: handleNodeEditGranular,
+            onIdEdit: handleNodeIdEditGranular,
+            onMarkerEdit: handleMarkerEditGranular,
+            onMarkerToggle: handleMarkerToggle,
+            onDelete: handleNodeDelete,
+            onColorChange: handleNodeColorChange,
+          } as EditableNodeData,
+          sourcePosition: Position.Bottom,
+          targetPosition: Position.Top,
+        });
+      }
+
+      yPosition += verticalSpacing;
+    });
+
+    // Create edges with page-specific IDs
+    const edgeLevels = Object.keys(stepGroups)
+      .map((n) => parseInt(n))
+      .sort((a, b) => a - b);
+
+    for (let i = 1; i < edgeLevels.length; i++) {
+      const currentLevel = edgeLevels[i];
+      const prevLevel = edgeLevels[i - 1];
+      const currentSteps = stepGroups[currentLevel];
+      const prevSteps = stepGroups[prevLevel] || [];
+
+      currentSteps.forEach((nextStep) => {
+        const cont = (nextStep as ParsedStep & { continuesFromIds?: string[] }).continuesFromIds;
+        if (cont && cont.length) {
+          // Explicit continuation: connect only from specified sources
+          cont.forEach((sourceId) => {
+            newEdges.push({
+              id: `${pageId}-e-${sourceId}-${nextStep.id}`,
+              source: `${pageId}-${sourceId}`,
+              target: `${pageId}-${nextStep.id}`,
+              type: 'smoothstep',
+              style: { stroke: '#0d9488', strokeWidth: 2 }, // Cyan theme
+              deletable: true,
+            });
+          });
+        } else {
+          // Default behavior: connect from previous level
+          if (prevSteps.length === 1) {
+            newEdges.push({
+              id: `${pageId}-e-${prevSteps[0].id}-${nextStep.id}`,
+              source: `${pageId}-${prevSteps[0].id}`,
+              target: `${pageId}-${nextStep.id}`,
+              type: 'smoothstep',
+              style: { stroke: '#0d9488', strokeWidth: 2 }, // Cyan theme
+              deletable: true,
+            });
+          } else if (prevSteps.length > 1) {
+            prevSteps.forEach((prevStep) => {
+              newEdges.push({
+                id: `${pageId}-e-${prevStep.id}-${nextStep.id}`,
+                source: `${pageId}-${prevStep.id}`,
+                target: `${pageId}-${nextStep.id}`,
+                type: 'smoothstep',
+                style: { stroke: '#059669', strokeWidth: 2 }, // Darker cyan for parallel connections
+                deletable: true,
+              });
+            });
+          }
+        }
+      });
+    }
+
+    // Store in page-specific storage
+    setAllPageNodes(prev => ({ ...prev, [pageId]: newNodes }));
+    setAllPageEdges(prev => ({ ...prev, [pageId]: newEdges }));
+    
+    // Set as active page and display its content
+    setCurrentActivePage(pageId);
+    setNodes(newNodes);
+    setEdges(newEdges);
+    
+    toast.success(`Page flowchart generated successfully!`);
+  }, [parsePrompt, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange, setNodes, setEdges]);
+  // Effect to update displayed nodes/edges when active page changes
+  useEffect(() => {
+    if (currentActivePage && allPageNodes[currentActivePage] && allPageEdges[currentActivePage]) {
+      setNodes(allPageNodes[currentActivePage]);
+      setEdges(allPageEdges[currentActivePage]);
+    } else {
+      // If no active page, show main flowchart or empty
+      // You could store main flowchart separately if needed
+    }
+  }, [currentActivePage, allPageNodes, allPageEdges, setNodes, setEdges]);
+
+  // Handle page switching from PagesPanel
+  const handlePageSwitch = useCallback((pageId: string) => {
+    setCurrentActivePage(pageId);
+    
+    // If the page has generated content, display it
+    if (allPageNodes[pageId] && allPageEdges[pageId]) {
+      setNodes(allPageNodes[pageId]);
+      setEdges(allPageEdges[pageId]);
+      toast.success(`Switched to page: ${pageId}`);
+    } else {
+      // Clear the canvas if page has no content
+      setNodes([]);
+      setEdges([]);
+      toast.info(`Switched to empty page: ${pageId}`);
+    }
+  }, [allPageNodes, allPageEdges, setNodes, setEdges]);
+
+  // Detect if it's a software project based on prompt content
+  useEffect(() => {
+    const softwareKeywords = ['app', 'website', 'login', 'dashboard', 'user', 'frontend', 'backend', 'api', 'interface', 'page', 'component'];
+    const isSoftware = softwareKeywords.some(keyword => 
+      promptText.toLowerCase().includes(keyword)
+    );
+    setIsSoftwareProject(isSoftware);
+  }, [promptText]);
   const addNewNode = useCallback(() => {
     const newNodeId = `node-${Date.now()}`;
     const newNode: Node = {
@@ -628,8 +828,7 @@ Step 6: Receive insights and recommendations`);
       toast.error('Failed to export as PDF');
       console.error('Export error:', error);
     }
-  }, []);
-  const saveProject = useCallback(() => {
+  }, []);  const saveProject = useCallback(() => {
     const project = {
       promptText,
       nodes,
@@ -640,6 +839,237 @@ Step 6: Receive insights and recommendations`);
     localStorage.setItem('flowchart-project', JSON.stringify(project));
     toast.success('Project saved locally');
   }, [promptText, nodes, edges]);
+
+  // Generate reconstructed prompt from current node/edge state
+  const generateReconstructedPrompt = useCallback(() => {
+    try {
+      // Sort nodes by position (top to bottom, left to right for parallel steps)
+      const sortedNodes = [...nodes].sort((a, b) => {
+        const yDiff = a.position.y - b.position.y;
+        if (Math.abs(yDiff) < 50) { // Same level (parallel)
+          return a.position.x - b.position.x;
+        }
+        return yDiff;
+      });
+
+      // Group nodes by approximate Y position (levels)
+      const levels: { [key: number]: typeof sortedNodes } = {};
+      let currentLevel = 1;
+      let lastY = -Infinity;
+      
+      sortedNodes.forEach(node => {
+        if (node.position.y - lastY > 50) {
+          currentLevel++;
+        }
+        if (!levels[currentLevel]) levels[currentLevel] = [];
+        levels[currentLevel].push(node);
+        lastY = node.position.y;
+      });
+
+      // Generate prompt text
+      const promptLines: string[] = [];
+      
+      Object.keys(levels).sort((a, b) => parseInt(a) - parseInt(b)).forEach(levelKey => {
+        const levelNodes = levels[parseInt(levelKey)];
+        
+        if (levelNodes.length === 1) {
+          // Single step
+          const node = levelNodes[0];
+          const stepNumber = parseInt(levelKey);
+          let line = `Step ${stepNumber}: ${node.data.label}`;
+          
+          // Add markers if present
+          if (node.data.startMarker) line += ` ${node.data.startMarker}`;
+          if (node.data.endMarker) line += ` ${node.data.endMarker}`;
+          
+          promptLines.push(line);
+        } else {
+          // Parallel steps
+          levelNodes.forEach((node, index) => {
+            const stepNumber = parseInt(levelKey);
+            const branch = String.fromCharCode(97 + index); // a, b, c, etc.
+            let line = `Step ${stepNumber}${branch}: ${node.data.label}`;
+            
+            // Add markers if present
+            if (node.data.startMarker) line += ` ${node.data.startMarker}`;
+            if (node.data.endMarker) line += ` ${node.data.endMarker}`;
+            
+            promptLines.push(line);
+          });
+        }
+      });
+
+      return promptLines.join('\n');
+    } catch (error) {
+      console.error('Error generating reconstructed prompt:', error);
+      return promptText; // Fallback to original
+    }
+  }, [nodes, promptText]);
+
+  // Enhanced save function for prompt files with all modifications
+  const savePromptFile = useCallback(() => {
+    try {
+      // Create comprehensive data structure that captures everything
+      const promptFileData = {
+        version: "1.0",
+        metadata: {
+          title: "Flowchart Prompt File",
+          created: new Date().toISOString(),
+          lastModified: new Date().toISOString(),
+          nodeCount: nodes.length,
+          edgeCount: edges.length
+        },
+        originalPrompt: promptText,
+        nodes: nodes.map(node => ({
+          id: node.id,
+          type: node.type,
+          position: node.position,
+          data: {
+            label: node.data.label,
+            nodeId: node.data.nodeId,
+            backgroundColor: node.data.backgroundColor,
+            borderColor: node.data.borderColor,
+            isStartNode: node.data.isStartNode,
+            isEndNode: node.data.isEndNode,
+            startMarker: node.data.startMarker,
+            endMarker: node.data.endMarker
+          },
+          sourcePosition: node.sourcePosition,
+          targetPosition: node.targetPosition
+        })),
+        edges: edges.map(edge => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          type: edge.type,
+          style: edge.style,
+          deletable: edge.deletable
+        })),
+        reconstructedPrompt: generateReconstructedPrompt()
+      };
+
+      // Create and download the file
+      const blob = new Blob([JSON.stringify(promptFileData, null, 2)], {
+        type: 'application/json'
+      });
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `flowchart-prompt-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      toast.success('Prompt file saved successfully');
+    } catch (error) {
+      toast.error('Failed to save prompt file');
+      console.error('Save error:', error);
+    }
+  }, [promptText, nodes, edges, generateReconstructedPrompt]);
+
+  // Import prompt file function
+  const importPromptFile = useCallback(() => {
+    try {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = async (event) => {
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          
+          // Validate file structure
+          if (!data.version || !data.nodes || !data.edges) {
+            toast.error('Invalid prompt file format');
+            return;
+          }          // Import the data
+          const importedNodes = data.nodes.map((nodeData: {
+            id: string;
+            type?: string;
+            position: { x: number; y: number };
+            data: {
+              label: string;
+              nodeId: string;
+              backgroundColor?: string;
+              borderColor?: string;
+              isStartNode?: boolean;
+              isEndNode?: boolean;
+              startMarker?: string;
+              endMarker?: string;
+            };
+            sourcePosition?: Position;
+            targetPosition?: Position;
+          }) => ({
+            id: nodeData.id,
+            type: nodeData.type || 'editable',
+            position: nodeData.position,
+            data: {
+              label: nodeData.data.label,
+              nodeId: nodeData.data.nodeId,
+              backgroundColor: nodeData.data.backgroundColor || '#dbeafe',
+              borderColor: nodeData.data.borderColor || '#3b82f6',
+              isStartNode: nodeData.data.isStartNode,
+              isEndNode: nodeData.data.isEndNode,
+              startMarker: nodeData.data.startMarker,
+              endMarker: nodeData.data.endMarker,
+              onEdit: handleNodeEditGranular,
+              onIdEdit: handleNodeIdEditGranular,
+              onMarkerEdit: handleMarkerEditGranular,
+              onMarkerToggle: handleMarkerToggle,
+              onDelete: handleNodeDelete,
+              onColorChange: handleNodeColorChange,
+            },
+            sourcePosition: nodeData.sourcePosition || Position.Bottom,
+            targetPosition: nodeData.targetPosition || Position.Top
+          }));
+
+          const importedEdges = data.edges.map((edgeData: {
+            id: string;
+            source: string;
+            target: string;
+            type?: string;
+            style?: { stroke: string; strokeWidth: number };
+            deletable?: boolean;
+          }) => ({
+            id: edgeData.id,
+            source: edgeData.source,
+            target: edgeData.target,
+            type: edgeData.type || 'smoothstep',
+            style: edgeData.style || { stroke: '#6b7280', strokeWidth: 2 },
+            deletable: edgeData.deletable !== false
+          }));
+
+          // Apply imported data
+          setNodes(importedNodes);
+          setEdges(importedEdges);
+          
+          // Use reconstructed prompt if available, otherwise use original
+          const promptToUse = data.reconstructedPrompt || data.originalPrompt || '';
+          setPromptText(promptToUse);
+          
+          // Close mobile drawer if open
+          if (isMobile) {
+            setIsDrawerOpen(false);
+          }
+          
+          toast.success(`Imported ${importedNodes.length} nodes and ${importedEdges.length} connections`);
+        } catch (parseError) {
+          toast.error('Failed to parse prompt file');
+          console.error('Parse error:', parseError);
+        }
+      };
+      
+      input.click();
+    } catch (error) {
+      toast.error('Failed to import prompt file');
+      console.error('Import error:', error);
+    }
+  }, [setNodes, setEdges, setPromptText, isMobile, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange]);
 
   // Close drawer on mobile after certain actions
   const handleGenerateFlowchart = useCallback(() => {
@@ -738,13 +1168,21 @@ Step 6: Receive insights and recommendations`);
               </div>
             </SheetContent>
           </Sheet>
-        )}
-
-        <FlowchartToolbar 
+        )}        <FlowchartToolbar 
           onAddNode={addNewNode}
           onExportPNG={exportToPNG}
           onExportPDF={exportToPDF}
           onSaveProject={saveProject}
+          onSavePromptFile={savePromptFile}
+          onImportPromptFile={importPromptFile}
+        />
+          {/* Pages Panel */}
+        <PagesPanel 
+          isVisible={isPagesVisible}
+          onToggle={() => setIsPagesVisible(!isPagesVisible)}
+          isSoftwareProject={isSoftwareProject}
+          onGeneratePageFlowchart={handleGeneratePageFlowchart}
+          onPageSwitch={handlePageSwitch}
         />
         <ReactFlow
           nodes={nodes}

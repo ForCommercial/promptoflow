@@ -69,6 +69,18 @@ export const EditableNode: React.FC<NodeProps> = ({
     }
   }, [isEditing, isEditingId, isEditingMarker]);
 
+  // Sync local state with node data when not editing
+  useEffect(() => {
+    if (!isEditing) {
+      setEditValue(nodeData.label || '');
+    }
+  }, [nodeData.label, isEditing]);
+
+  useEffect(() => {
+    if (!isEditingId) {
+      setEditIdValue(nodeData.nodeId || id);
+    }
+  }, [nodeData.nodeId, id, isEditingId]);
   const handleEdit = useCallback(() => {
     setIsEditing(true);
   }, []);
@@ -83,28 +95,21 @@ export const EditableNode: React.FC<NodeProps> = ({
     setEditingStartMarker(isStart);
     setIsEditingMarker(true);
   }, [nodeData.startMarker, nodeData.endMarker]);
-
-  // Granular real-time handlers for inch-by-inch tracking
+  // Real-time handlers - only update local state, no parent callbacks
   const handleRealTimeEdit = useCallback((newValue: string) => {
     setEditValue(newValue);
-    if (nodeData.onEdit) {
-      nodeData.onEdit(id, newValue); // Call immediately for every keystroke
-    }
-  }, [nodeData.onEdit, id]);
+    // Don't call parent callback here - only on save
+  }, []);
 
   const handleRealTimeIdEdit = useCallback((newValue: string) => {
     setEditIdValue(newValue);
-    if (nodeData.onIdEdit && newValue.trim()) {
-      nodeData.onIdEdit(id, newValue.trim()); // Call immediately for every keystroke
-    }
-  }, [nodeData.onIdEdit, id]);
+    // Don't call parent callback here - only on save
+  }, []);
 
   const handleRealTimeMarkerEdit = useCallback((newValue: string) => {
     setEditMarkerValue(newValue);
-    if (nodeData.onMarkerEdit) {
-      nodeData.onMarkerEdit(id, newValue, editingStartMarker); // Call immediately for every keystroke
-    }
-  }, [nodeData.onMarkerEdit, id, editingStartMarker]);
+    // Don't call parent callback here - only on save
+  }, []);
 
   const handleSave = useCallback(() => {
     if (editValue.trim() && nodeData.onEdit) {
@@ -198,20 +203,25 @@ export const EditableNode: React.FC<NodeProps> = ({
       
       {/* Start/End Markers */}
       {nodeData.isStartNode && (
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
-          {isEditingMarker && editingStartMarker ? (            <Input
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">          {isEditingMarker && editingStartMarker ? (            <Input
               ref={markerInputRef}
               value={editMarkerValue}
               onChange={(e) => handleRealTimeMarkerEdit(e.target.value)}
-              onBlur={handleMarkerSave}
               onKeyDown={handleMarkerKeyPress}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
+              autoFocus
               className="text-lg h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300 text-center w-8"
               placeholder="▶"
             />
-          ) : (
-            <div 
+          ) : (<div 
               className="text-lg cursor-pointer hover:bg-black/5 rounded p-1 text-center"
-              onClick={() => handleMarkerEdit(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerEdit(true);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
               title="Click to edit start marker"
             >
               {nodeData.startMarker || '▶'}
@@ -221,20 +231,25 @@ export const EditableNode: React.FC<NodeProps> = ({
       )}
       
       {nodeData.isEndNode && (
-        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">
-          {isEditingMarker && !editingStartMarker ? (            <Input
+        <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2">          {isEditingMarker && !editingStartMarker ? (            <Input
               ref={markerInputRef}
               value={editMarkerValue}
               onChange={(e) => handleRealTimeMarkerEdit(e.target.value)}
-              onBlur={handleMarkerSave}
               onKeyDown={handleMarkerKeyPress}
+              onClick={(e) => e.stopPropagation()}
+              onMouseDown={(e) => e.stopPropagation()}
+              onFocus={(e) => e.stopPropagation()}
+              autoFocus
               className="text-lg h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300 text-center w-8"
               placeholder="🏁"
             />
-          ) : (
-            <div 
+          ) : (<div 
               className="text-lg cursor-pointer hover:bg-black/5 rounded p-1 text-center"
-              onClick={() => handleMarkerEdit(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMarkerEdit(false);
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
               title="Click to edit end marker"
             >
               {nodeData.endMarker || '🏁'}
@@ -244,43 +259,52 @@ export const EditableNode: React.FC<NodeProps> = ({
       )}
         <div className="flex items-center justify-between gap-2">
         <div className="flex-1">
-          {/* Node ID */}
-          <div className="mb-1">
-            {isEditingId ? (
+          {/* Node ID */}          <div className="mb-1">            {isEditingId ? (
               <Input
                 ref={idInputRef}
                 value={editIdValue}
                 onChange={(e) => handleRealTimeIdEdit(e.target.value)}
-                onBlur={handleIdSave}
                 onKeyDown={handleIdKeyPress}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+                autoFocus
                 className="text-xs h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300 font-mono"
                 placeholder="Node ID"
               />
-            ) : (
-              <div 
+            ) : (<div 
                 className="text-xs font-mono text-gray-600 cursor-pointer hover:bg-black/5 rounded p-1 text-center"
-                onClick={handleIdEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleIdEdit();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
                 title="Click to edit ID"
               >
                 #{nodeData.nodeId || id}
               </div>
             )}
           </div>
-          
-          {/* Node Label */}
-          <div className="min-h-[20px]">
-            {isEditing ? (
+            {/* Node Label */}
+          <div className="min-h-[20px]">            {isEditing ? (
               <Input                ref={inputRef}
                 value={editValue}
                 onChange={(e) => handleRealTimeEdit(e.target.value)}
-                onBlur={handleSave}
                 onKeyDown={handleKeyPress}
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                onFocus={(e) => e.stopPropagation()}
+                autoFocus
                 className="text-sm h-auto p-1 border-none bg-transparent focus:bg-white focus:border-gray-300"
               />
-            ) : (
-              <div 
+            ) : (<div 
                 className="text-sm font-medium text-center cursor-pointer hover:bg-black/5 rounded p-1"
-                onClick={handleEdit}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit();
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                title="Click to edit label"
               >
                 {nodeData.label}
               </div>
