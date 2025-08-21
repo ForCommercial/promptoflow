@@ -248,55 +248,72 @@ export const PagesPanel: React.FC<PagesPanelProps> = ({
         )}
       </Button>
     );
-  }
-
-  return (
-    <Card className="fixed top-4 right-80 w-72 max-h-96 z-20 bg-white shadow-lg">
-      <div className="p-4">        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Monitor className="w-4 h-4 text-blue-600" />
-            <h3 className="font-semibold text-sm">Software Pages</h3>
-            {isSoftwareProject && (
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Software project detected" />
-            )}
+  }  return (
+    <Card className="fixed top-4 right-4 w-80 max-h-[90vh] z-20 bg-white shadow-xl border-2 border-blue-100 overflow-hidden">
+      <div className="flex flex-col h-full max-h-[90vh]">
+        {/* Header Section */}
+        <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-blue-600" />
+              <h3 className="font-bold text-base text-gray-800">Pages Manager</h3>
+              {isSoftwareProject && (
+                <div className="flex items-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Software project detected" />
+                  <Badge variant="secondary" className="text-xs px-2 py-0.5 bg-green-100 text-green-700 border-green-200">
+                    Software Project
+                  </Badge>
+                </div>
+              )}
+            </div>
+            <Button
+              onClick={onToggle}
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0 hover:bg-red-100 rounded-full"
+            >
+              <X className="h-4 w-4 text-red-500" />
+            </Button>
           </div>
-          <Button
-            onClick={onToggle}
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-
-        {isSoftwareProject && (
-          <div className="mb-3 p-2 bg-blue-50 rounded-md border border-blue-200">
-            <p className="text-xs text-blue-700">
-              🎯 Software project detected! Add pages/screens to organize your app structure.
-            </p>
+          
+          {isSoftwareProject && (
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs text-blue-700 leading-relaxed">
+                🎯 <strong>Software project detected!</strong> Organize your app structure by adding pages and screens.
+              </p>
+            </div>
+          )}
+        </div>        
+        {/* Add Page Section */}
+        <div className="p-4 border-b border-gray-100">
+          <div className="mb-3">
+            <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              Add New Page
+            </h4>
           </div>
-        )}        {/* Add Page Section */}
-        <div className="mb-3">
+          
           {!isAddingPage ? (
-            <div className="space-y-2">
-              <div className="flex gap-1">
+            <div className="space-y-3">
+              <div className="flex gap-2">
                 <Button
                   onClick={() => setIsAddingPage(true)}
                   variant="outline"
                   size="sm"
-                  className="flex-1 text-xs"
+                  className="flex-1 text-xs border-dashed border-2 hover:border-blue-300 hover:bg-blue-50"
                 >
                   <Plus className="w-3 h-3 mr-1" />
-                  Add Custom
+                  Custom Page
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm" className="text-xs">
-                      <MoreVertical className="w-3 h-3" />
+                    <Button variant="outline" size="sm" className="text-xs px-3 hover:bg-purple-50 hover:border-purple-300">
+                      <Wand2 className="w-3 h-3 mr-1" />
+                      Templates
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuContent align="end" className="w-56">
+                    <div className="p-2 text-xs font-medium text-gray-500 border-b">Quick Templates</div>
                     {PAGE_TEMPLATES.map((template, index) => {
                       const IconComponent = ICON_MAP[template.icon as keyof typeof ICON_MAP];
                       return (
@@ -313,48 +330,59 @@ export const PagesPanel: React.FC<PagesPanelProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
-              
-              {/* Bulk Creation Button */}
+                {/* Bulk Creation Dialog */}
               <Dialog open={isBulkDialogOpen} onOpenChange={setIsBulkDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="w-full text-xs">
+                  <Button variant="outline" size="sm" className="w-full text-xs hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 hover:border-purple-300">
                     <Wand2 className="w-3 h-3 mr-1" />
                     Bulk Create Pages
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-md">
+                <DialogContent className="max-w-2xl">
                   <DialogHeader>
-                    <DialogTitle className="text-lg">Bulk Create Pages</DialogTitle>
-                    <DialogDescription className="text-sm">
-                      Create multiple pages at once using this format:
+                    <DialogTitle className="text-xl flex items-center gap-2">
+                      <Wand2 className="w-5 h-5 text-purple-600" />
+                      Bulk Create Pages
+                    </DialogTitle>
+                    <DialogDescription className="text-sm text-gray-600">
+                      Create multiple pages at once with detailed step-by-step flows
                     </DialogDescription>
                   </DialogHeader>
-                  <div className="space-y-3">
-                    <div className="text-xs bg-gray-100 p-2 rounded font-mono">
-                      Homepage:<br/>
-                      Step 1: User lands on homepage<br/>
-                      Step 2: Show hero section<br/><br/>
-                      Login Page:<br/>
-                      Step 1: Show login form<br/>
-                      Step 2: Validate credentials
+                  <div className="space-y-4">
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200">
+                      <p className="text-sm font-medium text-purple-800 mb-2">📝 Format Guide:</p>
+                      <div className="text-xs bg-white p-3 rounded border font-mono text-gray-700 leading-relaxed">
+                        <div className="text-purple-600 font-bold">Homepage:</div>
+                        <div>Step 1: User lands on homepage</div>
+                        <div>Step 2: Show hero section and navigation</div>
+                        <div>Step 3: Display featured content</div>
+                        <div className="mt-2 text-purple-600 font-bold">Login Page:</div>
+                        <div>Step 1: Show login form</div>
+                        <div>Step 2: Validate user credentials</div>
+                        <div>Step 3: Redirect to dashboard on success</div>
+                      </div>
                     </div>
+                    
                     <Textarea
                       value={bulkPrompt}
                       onChange={(e) => setBulkPrompt(e.target.value)}
-                      placeholder="Enter pages in format above..."
-                      className="h-32 text-sm"
+                      placeholder="Enter pages in the format shown above...\n\nExample:\nHomepage:\nStep 1: User lands on homepage\nStep 2: Show hero section\nStep 3: Display navigation menu\n\nDashboard:\nStep 1: Verify user authentication\nStep 2: Load user data\nStep 3: Display dashboard widgets"
+                      className="h-40 text-sm resize-none"
                     />
-                    <div className="flex gap-2">
+                    
+                    <div className="flex gap-3">
                       <Button 
                         onClick={processBulkPrompt} 
                         disabled={!bulkPrompt.trim()}
-                        className="flex-1"
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       >
-                        Create Pages
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create All Pages
                       </Button>
                       <Button 
                         variant="outline" 
                         onClick={() => setIsBulkDialogOpen(false)}
+                        className="px-6"
                       >
                         Cancel
                       </Button>
@@ -362,150 +390,233 @@ export const PagesPanel: React.FC<PagesPanelProps> = ({
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
-          ) : (
-            <div className="flex gap-1">
-              <Input
-                value={newPageName}
-                onChange={(e) => setNewPageName(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Page name..."
-                className="text-xs h-8"
-                autoFocus
-              />
-              <Button
-                onClick={() => addPage()}
-                disabled={!newPageName.trim()}
-                size="sm"
-                className="h-8 text-xs"
-              >
-                Add
-              </Button>
-            </div>
-          )}
-        </div>        {/* Pages List */}
-        <div className="space-y-1 max-h-60 overflow-y-auto">
-          {pages.length === 0 ? (
-            <div className="text-center py-4 text-gray-500 text-xs">
-              No pages added yet. Add pages using templates or create custom ones.
-            </div>
-          ) : (            pages.map((page) => {
-              const IconComponent = ICON_MAP[page.icon as keyof typeof ICON_MAP] || FileText;
-              const hasPrompt = page.prompt && page.prompt.trim().length > 0;
-              const isActive = activePage === page.id;
-              
-              return (
-                <div
-                  key={page.id}
-                  className={`flex items-center justify-between p-2 rounded-md transition-colors cursor-pointer ${
-                    isActive 
-                      ? 'bg-blue-100 border border-blue-300 shadow-sm' 
-                      : 'bg-gray-50 hover:bg-gray-100'
-                  }`}
-                  onClick={() => switchToPage(page.id)}
-                >
-                  <div className="flex items-center gap-2 flex-1">
-                    <IconComponent 
-                      className="w-3 h-3" 
-                      style={{ color: page.color }} 
-                    />
-                    <span className={`text-xs font-medium truncate ${
-                      isActive ? 'text-blue-800' : ''
-                    }`}>{page.name}</span>
-                    <Badge 
-                      variant="secondary" 
-                      className="text-[10px] h-4 px-1"
-                    >
-                      {page.type}
-                    </Badge>
-                    {isActive && (
-                      <Badge 
-                        variant="outline"
-                        className="text-[10px] h-4 px-1 bg-blue-50 border-blue-300 text-blue-700"
-                      >
-                        Active
-                      </Badge>
-                    )}
-                    {hasPrompt && (
-                      <Badge 
-                        variant="outline" 
-                        className="text-[10px] h-4 px-1 bg-green-50 border-green-200 text-green-700"
-                      >
-                        <Workflow className="w-2 h-2 mr-1" />
-                        Flow
-                      </Badge>
-                    )}
-                  </div>                  <div className="flex gap-1">
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openPageEditor(page);
-                      }}
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-blue-100"
-                      title="Edit page prompt"
-                    >
-                      <Edit className="h-2 w-2 text-blue-500" />
-                    </Button>
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removePage(page.id);
-                      }}
-                      variant="ghost"
-                      size="sm"
-                      className="h-4 w-4 p-0 hover:bg-red-100"
-                    >
-                      <X className="h-2 w-2 text-red-500" />
-                    </Button>
-                  </div>
+            </div>          ) : (
+            <div className="space-y-3">
+              <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <Plus className="w-4 h-4 text-gray-600" />
+                  <span className="text-sm font-medium text-gray-700">Create Custom Page</span>
                 </div>
-              );
-            })
-          )}
-        </div>        {pages.length > 0 && (
-          <div className="mt-3 pt-2 border-t border-gray-200">
-            <div className="text-[10px] text-gray-500 text-center">
-              {pages.length} page{pages.length !== 1 ? 's' : ''} • {activePage ? 'Active: ' + (pages.find(p => p.id === activePage)?.name || 'None') : 'No active page'} • {isSoftwareProject ? 'Software Project ✓' : 'Project'}
+                <div className="flex gap-2">
+                  <Input
+                    value={newPageName}
+                    onChange={(e) => setNewPageName(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Enter page name..."
+                    className="text-sm h-9 flex-1"
+                    autoFocus
+                  />
+                  <Button
+                    onClick={() => addPage()}
+                    disabled={!newPageName.trim()}
+                    size="sm"
+                    className="h-9 px-4 bg-blue-600 hover:bg-blue-700"
+                  >
+                    Add Page
+                  </Button>
+                </div>
+                <Button
+                  onClick={() => {
+                    setIsAddingPage(false);
+                    setNewPageName('');
+                  }}
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 text-xs text-gray-500 h-6"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}</div>        
+        {/* Pages List Section */}
+        <div className="flex-1 min-h-0">
+          <div className="p-4 border-b border-gray-100">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Pages ({pages.length})
+            </h4>
+          </div>
+          
+          <div className="px-4 pb-4">
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+              {pages.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <FileText className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+                  <p className="text-sm mb-2">No pages added yet</p>
+                  <p className="text-xs text-gray-400">Add pages using templates or create custom ones</p>
+                </div>
+              ) : (
+                pages.map((page) => {
+                  const IconComponent = ICON_MAP[page.icon as keyof typeof ICON_MAP] || FileText;
+                  const hasPrompt = page.prompt && page.prompt.trim().length > 0;
+                  const isActive = activePage === page.id;
+                  
+                  return (
+                    <div
+                      key={page.id}
+                      className={`group flex items-center justify-between p-3 rounded-lg transition-all duration-200 cursor-pointer border ${
+                        isActive 
+                          ? 'bg-gradient-to-r from-blue-50 to-blue-100 border-blue-300 shadow-md transform scale-[1.02]' 
+                          : 'bg-white hover:bg-gray-50 border-gray-200 hover:border-gray-300 hover:shadow-sm'
+                      }`}
+                      onClick={() => switchToPage(page.id)}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className={`p-1.5 rounded-lg ${isActive ? 'bg-white' : 'bg-gray-100 group-hover:bg-gray-200'}`}>
+                          <IconComponent 
+                            className="w-4 h-4" 
+                            style={{ color: page.color }} 
+                          />
+                        </div>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-sm font-medium truncate ${
+                              isActive ? 'text-blue-900' : 'text-gray-700'
+                            }`}>{page.name}</span>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-[10px] h-5 px-2 ${
+                                isActive ? 'bg-blue-200 text-blue-800' : ''
+                              }`}
+                            >
+                              {page.type}
+                            </Badge>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            {isActive && (
+                              <Badge 
+                                variant="outline"
+                                className="text-[10px] h-4 px-1.5 bg-green-50 border-green-300 text-green-700"
+                              >
+                                ● Active
+                              </Badge>
+                            )}
+                            {hasPrompt && (
+                              <Badge 
+                                variant="outline" 
+                                className="text-[10px] h-4 px-1.5 bg-purple-50 border-purple-200 text-purple-700"
+                              >
+                                <Workflow className="w-2 h-2 mr-0.5" />
+                                Flow Ready
+                              </Badge>
+                            )}
+                            {page.lastModified && (
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(page.lastModified).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openPageEditor(page);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 hover:bg-blue-100 rounded-full"
+                          title="Edit page prompt"
+                        >
+                          <Edit className="h-3 w-3 text-blue-500" />
+                        </Button>
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removePage(page.id);
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 hover:bg-red-100 rounded-full"
+                          title="Remove page"
+                        >
+                          <X className="h-3 w-3 text-red-500" />
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>        {/* Footer Section */}
+        {pages.length > 0 && (
+          <div className="mt-auto p-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between text-xs text-gray-500">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{pages.length} page{pages.length !== 1 ? 's' : ''}</span>
+                {isSoftwareProject && (
+                  <Badge variant="outline" className="text-[10px] h-4 px-1.5 bg-green-50 border-green-200 text-green-600">
+                    Software Project ✓
+                  </Badge>
+                )}
+              </div>
+              {activePage && (
+                <div className="flex items-center gap-1">
+                  <span className="text-gray-400">Active:</span>
+                  <span className="font-medium text-blue-600">
+                    {pages.find(p => p.id === activePage)?.name || 'None'}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
-      
-      {/* Page Editor Dialog */}
+        {/* Page Editor Dialog */}
       <Dialog open={isPageDialogOpen} onOpenChange={setIsPageDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="text-lg">
+            <DialogTitle className="text-xl flex items-center gap-2">
+              <Edit className="w-5 h-5 text-blue-600" />
               Edit Page: {selectedPage?.name}
             </DialogTitle>
-            <DialogDescription className="text-sm">
-              Add a prompt to generate a flowchart for this page
+            <DialogDescription className="text-sm text-gray-600">
+              Create a detailed prompt to generate a comprehensive flowchart for this page
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3">
-            <div className="text-xs bg-blue-50 p-2 rounded border border-blue-200">
-              💡 <strong>Tip:</strong> Use format like "Step 1: User action", "Step 2: System response"
+          <div className="space-y-4">
+            <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+              <div className="flex items-start gap-3">
+                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-blue-600 text-sm font-bold">💡</span>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-blue-800 mb-1">Pro Tips for Better Flowcharts:</p>
+                  <ul className="text-xs text-blue-700 space-y-1">
+                    <li>• Use step format: "Step 1: User action", "Step 2: System response"</li>
+                    <li>• Include decision points: "If user is logged in", "Else show login"</li>
+                    <li>• Add error handling: "On error, show error message"</li>
+                  </ul>
+                </div>
+              </div>
             </div>
+            
             <Textarea
               value={pagePrompt}
               onChange={(e) => setPagePrompt(e.target.value)}
-              placeholder={`Enter steps for ${selectedPage?.name}...\n\nExample:\nStep 1: User lands on page\nStep 2: Load page content\nStep 3: Display to user`}
-              className="h-40 text-sm"
+              placeholder={`Enter detailed steps for ${selectedPage?.name}...\n\nExample:\nStep 1: User lands on ${selectedPage?.name || 'page'}\nStep 2: Load and display page content\nStep 3: Handle user interactions\nStep 4: Process user actions\nStep 5: Update page state\n\nDecision Points:\nIf user is authenticated -> Show full content\nElse -> Redirect to login\n\nError Handling:\nOn load error -> Show error message\nOn timeout -> Show retry option`}
+              className="h-48 text-sm resize-none"
             />
-            <div className="flex gap-2">
+            
+            <div className="flex gap-3">
               <Button 
                 onClick={savePagePrompt} 
                 disabled={!pagePrompt.trim()}
-                className="flex-1"
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
                 <Workflow className="w-4 h-4 mr-2" />
-                Save & Generate Flow
+                Save & Generate Flowchart
               </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setIsPageDialogOpen(false)}
+                className="px-6"
               >
                 Cancel
               </Button>

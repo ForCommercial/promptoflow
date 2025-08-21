@@ -934,50 +934,78 @@ Step 6: Receive insights and recommendations`);
       return promptText; // Fallback to original
     }
   }, [nodes, promptText]);
-
   // Enhanced save function for prompt files with all modifications
   const savePromptFile = useCallback(() => {
     try {
-      // Create comprehensive data structure that captures everything
+      // Get current state including all page data
+      const currentNodes = nodes || [];
+      const currentEdges = edges || [];
+      const allPageNodesData = allPageNodesRef.current || {};
+      const allPageEdgesData = allPageEdgesRef.current || {};
+      
+      // Combine all nodes and edges from main flowchart and all pages
+      let combinedNodes = [...currentNodes];
+      let combinedEdges = [...currentEdges];
+      
+      // Add all page-specific nodes and edges to the export
+      Object.keys(allPageNodesData).forEach(pageId => {
+        const pageNodes = allPageNodesData[pageId] || [];
+        const pageEdges = allPageEdgesData[pageId] || [];
+        combinedNodes = [...combinedNodes, ...pageNodes];
+        combinedEdges = [...combinedEdges, ...pageEdges];
+      });
+
+      // Generate reconstructed prompt from current state
+      const reconstructed = generateReconstructedPrompt();
+      
       const promptFileData = {
         version: "1.0",
         metadata: {
           title: "Flowchart Prompt File",
           created: new Date().toISOString(),
           lastModified: new Date().toISOString(),
-          nodeCount: nodes.length,
-          edgeCount: edges.length
+          nodeCount: combinedNodes.length,
+          edgeCount: combinedEdges.length,
+          activePageId: currentActivePage,
+          totalPages: Object.keys(allPageNodesData).length,
+          hasMainFlowchart: currentNodes.length > 0,
+          hasPageFlowcharts: Object.keys(allPageNodesData).length > 0
         },
         originalPrompt: promptText,
-        nodes: nodes.map(node => ({
+        nodes: combinedNodes.map(node => ({
           id: node.id,
-          type: node.type,
+          type: node.type || 'editable',
           position: node.position,
           data: {
-            label: node.data.label,
-            nodeId: node.data.nodeId,
-            backgroundColor: node.data.backgroundColor,
-            borderColor: node.data.borderColor,
-            isStartNode: node.data.isStartNode,
-            isEndNode: node.data.isEndNode,
-            startMarker: node.data.startMarker,
-            endMarker: node.data.endMarker
+            label: node.data?.label || '',
+            nodeId: node.data?.nodeId || node.id,
+            backgroundColor: node.data?.backgroundColor || '#dbeafe',
+            borderColor: node.data?.borderColor || '#3b82f6',
+            isStartNode: node.data?.isStartNode || false,
+            isEndNode: node.data?.isEndNode || false,
+            startMarker: node.data?.startMarker,
+            endMarker: node.data?.endMarker
           },
-          sourcePosition: node.sourcePosition,
-          targetPosition: node.targetPosition
+          sourcePosition: node.sourcePosition || Position.Bottom,
+          targetPosition: node.targetPosition || Position.Top
         })),
-        edges: edges.map(edge => ({
+        edges: combinedEdges.map(edge => ({
           id: edge.id,
           source: edge.source,
           target: edge.target,
-          type: edge.type,
-          style: edge.style,
-          deletable: edge.deletable
+          type: edge.type || 'smoothstep',
+          style: edge.style || { stroke: '#6b7280', strokeWidth: 2 },
+          deletable: edge.deletable !== false
         })),
-        reconstructedPrompt: generateReconstructedPrompt()
+        reconstructedPrompt: reconstructed,
+        pageData: {
+          allPageNodes: allPageNodesData,
+          allPageEdges: allPageEdgesData,
+          currentActivePage: currentActivePage
+        }
       };
 
-      // Create and download the file
+      // Create and download the file with descriptive filename
       const blob = new Blob([JSON.stringify(promptFileData, null, 2)], {
         type: 'application/json'
       });
@@ -985,19 +1013,24 @@ Step 6: Receive insights and recommendations`);
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `flowchart-prompt-${new Date().toISOString().split('T')[0]}.json`;
+      
+      // Generate descriptive filename
+      const timestamp = new Date().toISOString().split('T')[0];
+      const pageInfo = Object.keys(allPageNodesData).length > 0 ? `-${Object.keys(allPageNodesData).length}pages` : '';
+      const nodeInfo = combinedNodes.length > 0 ? `-${combinedNodes.length}nodes` : '';
+      
+      link.download = `flowchart-complete${pageInfo}${nodeInfo}-${timestamp}.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
       
-      toast.success('Prompt file saved successfully');
+      toast.success(`Exported complete flowchart with ${combinedNodes.length} nodes, ${combinedEdges.length} edges, and ${Object.keys(allPageNodesData).length} pages`);
     } catch (error) {
       toast.error('Failed to save prompt file');
       console.error('Save error:', error);
     }
-  }, [promptText, nodes, edges, generateReconstructedPrompt]);
-
+  }, [promptText, nodes, edges, generateReconstructedPrompt, currentActivePage]);
   // Import prompt file function
   const importPromptFile = useCallback(() => {
     try {
@@ -1016,7 +1049,12 @@ Step 6: Receive insights and recommendations`);
           if (!data.version || !data.nodes || !data.edges) {
             toast.error('Invalid prompt file format');
             return;
-          }          // Import the data
+          }
+
+          // Restore the original prompt
+          setPromptText(data.originalPrompt || '');
+          
+          // Import main flowchart nodes with proper callback restoration
           const importedNodes = data.nodes.map((nodeData: {
             id: string;
             type?: string;
@@ -1057,6 +1095,7 @@ Step 6: Receive insights and recommendations`);
             targetPosition: nodeData.targetPosition || Position.Top
           }));
 
+          // Import edges
           const importedEdges = data.edges.map((edgeData: {
             id: string;
             source: string;
@@ -1071,22 +1110,76 @@ Step 6: Receive insights and recommendations`);
             type: edgeData.type || 'smoothstep',
             style: edgeData.style || { stroke: '#6b7280', strokeWidth: 2 },
             deletable: edgeData.deletable !== false
-          }));
-
-          // Apply imported data
-          setNodes(importedNodes);
-          setEdges(importedEdges);
-          
-          // Use reconstructed prompt if available, otherwise use original
-          const promptToUse = data.reconstructedPrompt || data.originalPrompt || '';
-          setPromptText(promptToUse);
+          }));          // Handle page data if available (new format)
+          if (data.pageData && data.pageData.allPageNodes && data.pageData.allPageEdges) {
+            // Restore page-specific data with proper callbacks
+            const restoredPageNodes: Record<string, Node[]> = {};
+            const restoredPageEdges: Record<string, Edge[]> = {};
+            
+            Object.keys(data.pageData.allPageNodes).forEach(pageId => {
+              restoredPageNodes[pageId] = data.pageData.allPageNodes[pageId].map((nodeData: {
+                id: string;
+                type?: string;
+                position: { x: number; y: number };
+                data: {
+                  label: string;
+                  nodeId: string;
+                  backgroundColor?: string;
+                  borderColor?: string;
+                  isStartNode?: boolean;
+                  isEndNode?: boolean;
+                  startMarker?: string;
+                  endMarker?: string;
+                };
+                sourcePosition?: Position;
+                targetPosition?: Position;
+              }) => ({
+                ...nodeData,
+                data: {
+                  ...nodeData.data,
+                  onEdit: handleNodeEditGranular,
+                  onIdEdit: handleNodeIdEditGranular,
+                  onMarkerEdit: handleMarkerEditGranular,
+                  onMarkerToggle: handleMarkerToggle,
+                  onDelete: handleNodeDelete,
+                  onColorChange: handleNodeColorChange,
+                }
+              }));
+              restoredPageEdges[pageId] = data.pageData.allPageEdges[pageId] || [];
+            });
+            
+            // Update page state
+            setAllPageNodes(restoredPageNodes);
+            setAllPageEdges(restoredPageEdges);
+            allPageNodesRef.current = restoredPageNodes;
+            allPageEdgesRef.current = restoredPageEdges;
+            
+            // Restore active page if it exists
+            if (data.pageData.currentActivePage && restoredPageNodes[data.pageData.currentActivePage]) {
+              setCurrentActivePage(data.pageData.currentActivePage);
+              setNodes(restoredPageNodes[data.pageData.currentActivePage]);
+              setEdges(restoredPageEdges[data.pageData.currentActivePage]);
+            } else {
+              // No active page, show main flowchart
+              setNodes(importedNodes);
+              setEdges(importedEdges);
+            }
+          } else {
+            // Legacy format or main flowchart only
+            setNodes(importedNodes);
+            setEdges(importedEdges);
+          }
           
           // Close mobile drawer if open
           if (isMobile) {
             setIsDrawerOpen(false);
           }
           
-          toast.success(`Imported ${importedNodes.length} nodes and ${importedEdges.length} connections`);
+          const totalNodes = importedNodes.length + (data.pageData ? Object.values(data.pageData.allPageNodes || {}).flat().length : 0);
+          const totalEdges = importedEdges.length + (data.pageData ? Object.values(data.pageData.allPageEdges || {}).flat().length : 0);
+          const totalPages = data.pageData ? Object.keys(data.pageData.allPageNodes || {}).length : 0;
+          
+          toast.success(`Imported flowchart with ${totalNodes} nodes, ${totalEdges} edges${totalPages > 0 ? `, and ${totalPages} pages` : ''}`);
         } catch (parseError) {
           toast.error('Failed to parse prompt file');
           console.error('Parse error:', parseError);
@@ -1098,7 +1191,7 @@ Step 6: Receive insights and recommendations`);
       toast.error('Failed to import prompt file');
       console.error('Import error:', error);
     }
-  }, [setNodes, setEdges, setPromptText, isMobile, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange]);
+  }, [setNodes, setEdges, setPromptText, setAllPageNodes, setAllPageEdges, isMobile, handleNodeEditGranular, handleNodeIdEditGranular, handleMarkerEditGranular, handleMarkerToggle, handleNodeDelete, handleNodeColorChange]);
 
   // Close drawer on mobile after certain actions
   const handleGenerateFlowchart = useCallback(() => {
@@ -1196,15 +1289,15 @@ Step 6: Receive insights and recommendations`);
                 <PromptPanelContent />
               </div>
             </SheetContent>
-          </Sheet>
-        )}        <FlowchartToolbar 
+          </Sheet>        )}        {/* FlowchartToolbar - Commented out as requested */}
+        {/* <FlowchartToolbar 
           onAddNode={addNewNode}
           onExportPNG={exportToPNG}
           onExportPDF={exportToPDF}
           onSaveProject={saveProject}
           onSavePromptFile={savePromptFile}
           onImportPromptFile={importPromptFile}
-        />
+        /> */}
           {/* Pages Panel */}
         <PagesPanel 
           isVisible={isPagesVisible}
