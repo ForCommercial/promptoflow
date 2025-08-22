@@ -1,5 +1,9 @@
+/* Tailwind CSS directives - suppress unknown at-rule warnings */
+/* postcss-disable-next-line at-rule-no-unknown */
 @tailwind base;
+/* postcss-disable-next-line at-rule-no-unknown */
 @tailwind components;
+/* postcss-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
 
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
@@ -96,10 +100,32 @@ All colors MUST be HSL.
 
 @layer base {
   * {
+    /* postcss-disable-next-line at-rule-no-unknown */
     @apply border-border;
   }
 
   body {
+    /* postcss-disable-next-line at-rule-no-unknown */
     @apply bg-background text-foreground;
   }
+}
+
+/* Color preview classes for EditableNode dropdown */
+.color-preview-blue { background-color: #dbeafe; border-color: #3b82f6; }
+.color-preview-yellow { background-color: #fef3c7; border-color: #f59e0b; }
+.color-preview-green { background-color: #dcfce7; border-color: #16a34a; }
+.color-preview-red { background-color: #fde2e8; border-color: #e11d48; }
+.color-preview-purple { background-color: #f3e8ff; border-color: #9333ea; }
+.color-preview-cyan { background-color: #e0f2fe; border-color: #0891b2; }
+.color-preview-orange { background-color: #fff7ed; border-color: #ea580c; }
+.color-preview-gray { background-color: #f1f5f9; border-color: #475569; }
+
+/* Chart component dynamic color classes */
+.chart-indicator-color {
+  background-color: var(--color-bg);
+  border-color: var(--color-border);
+}
+
+.chart-legend-color {
+  background-color: var(--item-color);
 }

@@ -30,14 +30,14 @@ export interface EditableNodeData extends Record<string, unknown> {
 }
 
 const colors = [
-  { bg: '#dbeafe', border: '#3b82f6', name: 'Blue' },
-  { bg: '#fef3c7', border: '#f59e0b', name: 'Yellow' },
-  { bg: '#dcfce7', border: '#16a34a', name: 'Green' },
-  { bg: '#fde2e8', border: '#e11d48', name: 'Red' },
-  { bg: '#f3e8ff', border: '#9333ea', name: 'Purple' },
-  { bg: '#e0f2fe', border: '#0891b2', name: 'Cyan' },
-  { bg: '#fff7ed', border: '#ea580c', name: 'Orange' },
-  { bg: '#f1f5f9', border: '#475569', name: 'Gray' },
+  { bg: '#dbeafe', border: '#3b82f6', name: 'Blue', className: 'color-preview-blue' },
+  { bg: '#fef3c7', border: '#f59e0b', name: 'Yellow', className: 'color-preview-yellow' },
+  { bg: '#dcfce7', border: '#16a34a', name: 'Green', className: 'color-preview-green' },
+  { bg: '#fde2e8', border: '#e11d48', name: 'Red', className: 'color-preview-red' },
+  { bg: '#f3e8ff', border: '#9333ea', name: 'Purple', className: 'color-preview-purple' },
+  { bg: '#e0f2fe', border: '#0891b2', name: 'Cyan', className: 'color-preview-cyan' },
+  { bg: '#fff7ed', border: '#ea580c', name: 'Orange', className: 'color-preview-orange' },
+  { bg: '#f1f5f9', border: '#475569', name: 'Gray', className: 'color-preview-gray' },
 ];
 
 export const EditableNode: React.FC<NodeProps> = ({
@@ -335,17 +335,8 @@ export const EditableNode: React.FC<NodeProps> = ({
                       key={color.name}
                       onClick={() => handleColorChange(color.bg, color.border)}
                       className="flex items-center gap-2"
-                    >
-                      <div 
-                        className="w-4 h-4 rounded border-2"
-                        style={
-                          {
-                            '--color-bg': color.bg,
-                            '--color-border': color.border,
-                            backgroundColor: 'var(--color-bg)',
-                            borderColor: 'var(--color-border)'
-                          } as React.CSSProperties
-                        }
+                    >                      <div 
+                        className={`w-4 h-4 rounded border-2 ${color.className}`}
                       />
                       {color.name}
                     </DropdownMenuItem>

@@ -22,9 +22,51 @@
   </head>
   <body>
     <!-- Splash Screen -->
-    <div
-      id="splash-screen"
-      style="
+    <div id="splash-screen" class="splash-screen">
+      <!-- Glitter particles -->
+      <div class="glitter-container">
+        <div class="glitter glitter-1"></div>
+        <div class="glitter glitter-2"></div>
+        <div class="glitter glitter-3"></div>
+        <div class="glitter glitter-4"></div>
+        <div class="glitter glitter-5"></div>
+        <div class="glitter glitter-6"></div>
+        <div class="glitter glitter-7"></div>
+        <div class="glitter glitter-8"></div>
+      </div>
+
+      <!-- Logo image with animation (no elevated container) -->
+      <div class="logo-container">
+        <img
+          src="/Images/Promptoflow.png"
+          alt="Promptoflow"
+          class="logo-image"
+        />
+        <!-- Glow effect -->
+        <div class="logo-glow"></div>
+      </div>
+
+      <!-- Corner decorations -->
+      <div class="corner-decoration corner-top-left"></div>
+      <div class="corner-decoration corner-top-right"></div>
+      <div class="corner-decoration corner-bottom-left"></div>
+      <div class="corner-decoration corner-bottom-right"></div>
+
+      <!-- Footer - Crafted by Scable -->
+      <div class="footer-scable">
+        <span class="footer-text">Crafted by</span>
+        <img
+          src="/Images/Scable_Logo.png"
+          alt="Scable India Private Limited"
+          class="footer-logo"
+        />
+        <span class="footer-text">India Private Limited</span>
+      </div>
+    </div>
+
+    <style>
+      /* Splash Screen Styles */
+      .splash-screen {
         position: fixed;
         top: 0;
         left: 0;
@@ -42,272 +84,199 @@
         z-index: 9999;
         opacity: 1;
         transition: opacity 0.8s ease-out;
-      "
-    >
-      <!-- Glitter particles -->
-      <div
-        class="glitter-container"
-        style="
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          overflow: hidden;
-          pointer-events: none;
-        "
-      >
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 20%;
-            left: 10%;
-            width: 4px;
-            height: 4px;
-            background: #60a5fa;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out;
-          "
-        ></div>
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 30%;
-            left: 80%;
-            width: 3px;
-            height: 3px;
-            background: #8b5cf6;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out 0.3s;
-          "
-        ></div>
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 60%;
-            left: 15%;
-            width: 5px;
-            height: 5px;
-            background: #06b6d4;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out 0.6s;
-          "
-        ></div>
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 70%;
-            left: 85%;
-            width: 3px;
-            height: 3px;
-            background: #10b981;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out 0.9s;
-          "
-        ></div>
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 40%;
-            left: 50%;
-            width: 4px;
-            height: 4px;
-            background: #f59e0b;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out 1.2s;
-          "
-        ></div>
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 15%;
-            left: 60%;
-            width: 3px;
-            height: 3px;
-            background: #ef4444;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out 1.5s;
-          "
-        ></div>
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 80%;
-            left: 30%;
-            width: 5px;
-            height: 5px;
-            background: #ec4899;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out 1.8s;
-          "
-        ></div>
-        <div
-          class="glitter"
-          style="
-            position: absolute;
-            top: 25%;
-            left: 40%;
-            width: 4px;
-            height: 4px;
-            background: #8b5cf6;
-            border-radius: 50%;
-            animation: sparkle 2s infinite ease-in-out 2.1s;
-          "
-        ></div>
-      </div>
+      }
 
-      <!-- Logo image with animation (no elevated container) -->
-      <div
-        style="
-          position: relative;
-          animation: float 3s ease-in-out infinite, logoEntrance 1.5s ease-out;
-        "
-      >
-        <img
-          src="/Images/Promptoflow.png"
-          alt="Promptoflow"
-          style="
-            width: 320px;
-            height: 320px;
-            object-fit: contain;
-            filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
-            animation: pulse 2s ease-in-out infinite;
-          "
-        />
-        <!-- Glow effect -->
-        <div
-          style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 360px;
-            height: 360px;
-            background: radial-gradient(
-              circle,
-              rgba(96, 165, 250, 0.2) 0%,
-              transparent 70%
-            );
-            border-radius: 50%;
-            animation: glow 2s ease-in-out infinite alternate;
-          "
-        ></div>
-      </div>
+      .glitter-container {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        pointer-events: none;
+      }
 
-      <!-- Corner decorations -->
-      <div
-        style="
-          position: absolute;
-          top: 40px;
-          left: 40px;
-          width: 60px;
-          height: 60px;
-          border-top: 3px solid #e2e8f0;
-          border-left: 3px solid #e2e8f0;
-          border-radius: 12px 0 0 0;
-          opacity: 0.6;
-          animation: cornerFade 2s ease-in-out infinite alternate;
-        "
-      ></div>
-      <div
-        style="
-          position: absolute;
-          top: 40px;
-          right: 40px;
-          width: 60px;
-          height: 60px;
-          border-top: 3px solid #e2e8f0;
-          border-right: 3px solid #e2e8f0;
-          border-radius: 0 12px 0 0;
-          opacity: 0.6;
-          animation: cornerFade 2s ease-in-out infinite alternate 0.5s;
-        "
-      ></div>
-      <div
-        style="
-          position: absolute;
-          bottom: 40px;
-          left: 40px;
-          width: 60px;
-          height: 60px;
-          border-bottom: 3px solid #e2e8f0;
-          border-left: 3px solid #e2e8f0;
-          border-radius: 0 0 0 12px;
-          opacity: 0.6;
-          animation: cornerFade 2s ease-in-out infinite alternate 1s;
-        "
-      ></div>
-      <div
-        style="
-          position: absolute;
-          bottom: 40px;
-          right: 40px;
-          width: 60px;
-          height: 60px;
-          border-bottom: 3px solid #e2e8f0;
-          border-right: 3px solid #e2e8f0;
-          border-radius: 0 0 12px 0;
-          opacity: 0.6;
-          animation: cornerFade 2s ease-in-out infinite alternate 1.5s;
-        "
-      ></div>
-      <!-- Footer - Crafted by Scable -->
-      <div
-        style="
-          position: absolute;
-          bottom: 32px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          opacity: 0;
-          animation: footerFadeIn 1.5s ease-out forwards;
-        "
-      >
-        <span
-          style="
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-              sans-serif;
-            font-size: 14px;
-            font-weight: 500;
-            color: #64748b;
-            letter-spacing: 0.5px;
-          "
-          >Crafted by</span
-        >
-        <img
-          src="/Images/Scable_Logo.png"
-          alt="Scable India Private Limited"
-          style="
-            height: 24px;
-            object-fit: contain;
-            filter: grayscale(0.3) opacity(0.9);
-            transition: all 0.3s ease;
-          "
-          onmouseover="this.style.filter='grayscale(0) opacity(1)'; this.style.transform='scale(1.05)'"
-          onmouseout="this.style.filter='grayscale(0.3) opacity(0.9)'; this.style.transform='scale(1)'"
-        />
-        <span
-          style="
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-              sans-serif;
-            font-size: 14px;
-            font-weight: 500;
-            color: #64748b;
-            letter-spacing: 0.5px;
-          "
-          >India Private Limited</span
-        >
-      </div>
-    </div>
+      .glitter {
+        position: absolute;
+        border-radius: 50%;
+      }
 
-    <style>
+      .glitter-1 {
+        top: 20%;
+        left: 10%;
+        width: 4px;
+        height: 4px;
+        background: #60a5fa;
+        animation: sparkle 2s infinite ease-in-out;
+      }
+
+      .glitter-2 {
+        top: 30%;
+        left: 80%;
+        width: 3px;
+        height: 3px;
+        background: #8b5cf6;
+        animation: sparkle 2s infinite ease-in-out 0.3s;
+      }
+
+      .glitter-3 {
+        top: 60%;
+        left: 15%;
+        width: 5px;
+        height: 5px;
+        background: #06b6d4;
+        animation: sparkle 2s infinite ease-in-out 0.6s;
+      }
+
+      .glitter-4 {
+        top: 70%;
+        left: 85%;
+        width: 3px;
+        height: 3px;
+        background: #10b981;
+        animation: sparkle 2s infinite ease-in-out 0.9s;
+      }
+
+      .glitter-5 {
+        top: 40%;
+        left: 50%;
+        width: 4px;
+        height: 4px;
+        background: #f59e0b;
+        animation: sparkle 2s infinite ease-in-out 1.2s;
+      }
+
+      .glitter-6 {
+        top: 15%;
+        left: 60%;
+        width: 3px;
+        height: 3px;
+        background: #ef4444;
+        animation: sparkle 2s infinite ease-in-out 1.5s;
+      }
+
+      .glitter-7 {
+        top: 80%;
+        left: 30%;
+        width: 5px;
+        height: 5px;
+        background: #ec4899;
+        animation: sparkle 2s infinite ease-in-out 1.8s;
+      }
+
+      .glitter-8 {
+        top: 25%;
+        left: 40%;
+        width: 4px;
+        height: 4px;
+        background: #8b5cf6;
+        animation: sparkle 2s infinite ease-in-out 2.1s;
+      }
+
+      .logo-container {
+        position: relative;
+        animation: float 3s ease-in-out infinite, logoEntrance 1.5s ease-out;
+      }
+
+      .logo-image {
+        width: 320px;
+        height: 320px;
+        object-fit: contain;
+        filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.15));
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      .logo-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 360px;
+        height: 360px;
+        background: radial-gradient(
+          circle,
+          rgba(96, 165, 250, 0.2) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+        animation: glow 2s ease-in-out infinite alternate;
+      }
+
+      .corner-decoration {
+        position: absolute;
+        width: 60px;
+        height: 60px;
+        border: 3px solid #e2e8f0;
+        opacity: 0.6;
+      }
+
+      .corner-top-left {
+        top: 40px;
+        left: 40px;
+        border-bottom: none;
+        border-right: none;
+        border-radius: 12px 0 0 0;
+        animation: cornerFade 2s ease-in-out infinite alternate;
+      }
+
+      .corner-top-right {
+        top: 40px;
+        right: 40px;
+        border-bottom: none;
+        border-left: none;
+        border-radius: 0 12px 0 0;
+        animation: cornerFade 2s ease-in-out infinite alternate 0.5s;
+      }
+
+      .corner-bottom-left {
+        bottom: 40px;
+        left: 40px;
+        border-top: none;
+        border-right: none;
+        border-radius: 0 0 0 12px;
+        animation: cornerFade 2s ease-in-out infinite alternate 1s;
+      }
+
+      .corner-bottom-right {
+        bottom: 40px;
+        right: 40px;
+        border-top: none;
+        border-left: none;
+        border-radius: 0 0 12px 0;
+        animation: cornerFade 2s ease-in-out infinite alternate 1.5s;
+      }
+
+      .footer-scable {
+        position: absolute;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        opacity: 0;
+        animation: footerFadeIn 1.5s ease-out forwards;
+      }
+
+      .footer-text {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        color: #64748b;
+        letter-spacing: 0.5px;
+      }
+
+      .footer-logo {
+        height: 24px;
+        object-fit: contain;
+        filter: grayscale(0.3) opacity(0.9);
+        transition: all 0.3s ease;
+      }
+
+      .footer-logo:hover {
+        filter: grayscale(0) opacity(1);
+        transform: scale(1.05);
+      }
+
       @keyframes sparkle {
         0%,
         100% {

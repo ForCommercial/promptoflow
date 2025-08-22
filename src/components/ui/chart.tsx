@@ -203,10 +203,15 @@ const ChartTooltipContent = React.forwardRef<
                     {itemConfig?.icon ? (
                       <itemConfig.icon />
                     ) : (
-                      !hideIndicator && (
-                        <div
+                      !hideIndicator && (                        <div
+                          ref={(el) => {
+                            if (el) {
+                              el.style.setProperty("--color-bg", indicatorColor);
+                              el.style.setProperty("--color-border", indicatorColor);
+                            }
+                          }}
                           className={cn(
-                            "shrink-0 rounded-[2px] border-[--color-border] bg-[--color-bg]",
+                            "shrink-0 rounded-[2px] chart-indicator-color",
                             {
                               "h-2.5 w-2.5": indicator === "dot",
                               "w-1": indicator === "line",
@@ -215,12 +220,6 @@ const ChartTooltipContent = React.forwardRef<
                               "my-0.5": nestLabel && indicator === "dashed",
                             }
                           )}
-                          style={
-                            {
-                              "--color-bg": indicatorColor,
-                              "--color-border": indicatorColor,
-                            } as React.CSSProperties
-                          }
                         />
                       )
                     )}
@@ -295,15 +294,13 @@ const ChartLegendContent = React.forwardRef<
               )}
             >              {itemConfig?.icon && !hideIcon ? (
                 <itemConfig.icon />
-              ) : (
-                <div
-                  className="h-2 w-2 shrink-0 rounded-[2px]"
-                  style={
-                    {
-                      "--item-color": item.color,
-                      backgroundColor: "var(--item-color)",
-                    } as React.CSSProperties
-                  }
+              ) : (                <div
+                  ref={(el) => {
+                    if (el) {
+                      el.style.setProperty("--item-color", item.color);
+                    }
+                  }}
+                  className="h-2 w-2 shrink-0 rounded-[2px] chart-legend-color"
                 />
               )}
               {itemConfig?.label}
