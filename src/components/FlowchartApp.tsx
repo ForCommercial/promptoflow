@@ -1259,18 +1259,23 @@ Step 6: Receive insights and recommendations`);
             <PromptPanelContent />
           </Card>
         </div>
-      )}
-
-      {/* Main Panel - Flowchart */}
-      <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>
-        {/* Mobile Menu Button */}
+      )}      {/* Main Panel - Flowchart */}
+      <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>        {/* Logo - Top Left */}
+        <div className="absolute top-4 left-4 z-10">
+          <img 
+            src="/Images/Promptoflow.png" 
+            alt="Promptoflow" 
+            className="w-20 h-20 object-contain drop-shadow-md"
+          />
+        </div>
+          {/* Mobile Menu Button */}
         {isMobile && (
           <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
             <SheetTrigger asChild>
               <Button 
                 variant="outline" 
                 size="icon"
-                className="absolute top-4 left-4 z-10 bg-white shadow-md"
+                className="absolute top-4 left-28 z-10 bg-white shadow-md"
               >
                 <Menu className="h-4 w-4" />
               </Button>
@@ -1302,8 +1307,7 @@ Step 6: Receive insights and recommendations`);
           isSoftwareProject={isSoftwareProject}
           onGeneratePageFlowchart={handleGeneratePageFlowchart}
           onPageSwitch={handlePageSwitch}
-        />
-        <ReactFlow
+        />        <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
@@ -1319,6 +1323,7 @@ Step 6: Receive insights and recommendations`);
           style={{ backgroundColor: '#f8fafc' }}
           edgesFocusable={true}
           edgesReconnectable={true}
+          proOptions={{ hideAttribution: true }}
         >
           <Background color="#e2e8f0" size={1} />
           <Controls />
