@@ -256,6 +256,55 @@
           animation: cornerFade 2s ease-in-out infinite alternate 1.5s;
         "
       ></div>
+      <!-- Footer - Crafted by Scable -->
+      <div
+        style="
+          position: absolute;
+          bottom: 32px;
+          left: 50%;
+          transform: translateX(-50%);
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          opacity: 0;
+          animation: footerFadeIn 1.5s ease-out forwards;
+        "
+      >
+        <span
+          style="
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+              sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.5px;
+          "
+          >Crafted by</span
+        >
+        <img
+          src="/Images/Scable_Logo.png"
+          alt="Scable India Private Limited"
+          style="
+            height: 24px;
+            object-fit: contain;
+            filter: grayscale(0.3) opacity(0.9);
+            transition: all 0.3s ease;
+          "
+          onmouseover="this.style.filter='grayscale(0) opacity(1)'; this.style.transform='scale(1.05)'"
+          onmouseout="this.style.filter='grayscale(0.3) opacity(0.9)'; this.style.transform='scale(1)'"
+        />
+        <span
+          style="
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+              sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            letter-spacing: 0.5px;
+          "
+          >India Private Limited</span
+        >
+      </div>
     </div>
 
     <style>
@@ -270,7 +319,6 @@
           transform: scale(1);
         }
       }
-
       @keyframes logoEntrance {
         0% {
           opacity: 0;
@@ -279,6 +327,27 @@
         100% {
           opacity: 1;
           transform: translateY(0) scale(1);
+        }
+      }
+      @keyframes footerEntrance {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(30px) scale(0.9);
+        }
+        100% {
+          opacity: 0.8;
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+      }
+
+      @keyframes footerFadeIn {
+        0% {
+          opacity: 0;
+          transform: translateX(-50%) translateY(20px);
+        }
+        100% {
+          opacity: 0.8;
+          transform: translateX(-50%) translateY(0);
         }
       }
 

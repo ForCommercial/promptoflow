@@ -1242,12 +1242,29 @@ Step 6: Receive insights and recommendations`);
       >
         {showGuide ? 'Hide Guide' : 'Show Guide & Examples'}
       </Button>
-      
-      {showGuide && (
+        {showGuide && (
         <div className="mt-4">
           <UserGuide />
         </div>
       )}
+        {/* Scable Reference */}
+      <div className="mt-4 pt-3 border-t border-border">
+        <div className="flex items-center justify-center">
+          <span className="text-xs text-muted-foreground mr-2">Powered by</span>
+          <a 
+            href="https://scable.in" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:opacity-80 transition-opacity"
+          >
+            <img 
+              src="/Images/Scable_Logo.png" 
+              alt="Scable" 
+              className="h-4 object-contain"
+            />
+          </a>
+        </div>
+      </div>
     </div>
   );
   return (
