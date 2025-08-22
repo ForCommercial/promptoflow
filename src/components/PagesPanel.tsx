@@ -369,12 +369,11 @@ export const PagesPanel: React.FC<PagesPanelProps> = ({
                       placeholder="Enter pages in the format shown above...\n\nExample:\nHomepage:\nStep 1: User lands on homepage\nStep 2: Show hero section\nStep 3: Display navigation menu\n\nDashboard:\nStep 1: Verify user authentication\nStep 2: Load user data\nStep 3: Display dashboard widgets"
                       className="h-40 text-sm resize-none"
                     />
-                    
-                    <div className="flex gap-3">
+                      <div className="flex gap-3">
                       <Button 
                         onClick={processBulkPrompt} 
                         disabled={!bulkPrompt.trim()}
-                        className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                        className="flex-1"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Create All Pages
