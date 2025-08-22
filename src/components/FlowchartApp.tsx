@@ -20,7 +20,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Download, Play, Trash2, Menu } from 'lucide-react';
+import { Download, Play, Trash2, Menu, ChevronLeft, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { EditableNode, EditableNodeData } from './EditableNode';
@@ -42,6 +42,7 @@ const FlowchartApp = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isDesktopPanelExpanded, setIsDesktopPanelExpanded] = useState(true);
   const [promptText, setPromptText] = useState(`Step 1: Start project
 Step 2a: Resume Upload
 Step 2b: Skills/Interests Input  
@@ -1266,17 +1267,60 @@ Step 6: Receive insights and recommendations`);
         </div>
       </div>
     </div>
-  );
-  return (
+  );  return (
     <div className="h-screen flex flex-col md:flex-row">
-      {/* Desktop Left Panel */}
+      {/* Desktop Left Panel - Sliding Drawer */}
       {!isMobile && (
-        <div className="w-1/3 p-4 border-r border-border bg-background">
-          <Card className="h-full p-4">
-            <PromptPanelContent />
-          </Card>
+        <div 
+          className={`bg-background border-r border-border transition-all duration-300 ease-in-out relative ${
+            isDesktopPanelExpanded ? 'w-96' : 'w-12'
+          }`}
+        >
+          {/* Toggle Button */}
+          <Button
+            onClick={() => setIsDesktopPanelExpanded(!isDesktopPanelExpanded)}
+            variant="ghost"
+            size="sm"
+            className={`absolute top-4 z-20 bg-white shadow-md border border-gray-200 hover:bg-gray-50 transition-all duration-200 ${
+              isDesktopPanelExpanded ? 'right-3' : 'right-1 left-1'
+            }`}
+            title={isDesktopPanelExpanded ? 'Collapse Panel' : 'Expand Panel'}
+          >
+            {isDesktopPanelExpanded ? (
+              <ChevronLeft className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+
+          {/* Panel Content */}
+          <div 
+            className={`h-full transition-opacity duration-300 ${
+              isDesktopPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            }`}
+          >
+            {isDesktopPanelExpanded && (
+              <div className="pt-16 px-4 pb-4 h-full">
+                <Card className="h-full p-4">
+                  <PromptPanelContent />
+                </Card>
+              </div>
+            )}
+          </div>
+
+          {/* Collapsed State Indicator */}
+          {!isDesktopPanelExpanded && (
+            <div className="flex flex-col items-center justify-center h-full pt-16 space-y-4">
+              <div className="transform -rotate-90 text-xs font-medium text-gray-500 whitespace-nowrap">
+                Prompt Panel
+              </div>
+              <div className="w-6 h-6 bg-blue-100 rounded flex items-center justify-center">
+                <Menu className="w-4 h-4 text-blue-600" />
+              </div>
+            </div>
+          )}
         </div>
-      )}      {/* Main Panel - Flowchart */}
+      )}{/* Main Panel - Flowchart */}
       <div className="flex-1 bg-slate-50 relative" ref={reactFlowWrapper}>        {/* Logo - Top Left */}
         <div className="absolute top-4 left-4 z-10">
           <img 
