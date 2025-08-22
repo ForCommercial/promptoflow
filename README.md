@@ -1,4 +1,4 @@
-# Prompttoflow
+# Promptoflow
 
 ## Project info
 

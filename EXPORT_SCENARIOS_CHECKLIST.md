@@ -13,7 +13,7 @@ This document provides a comprehensive checklist for all export scenarios that h
 - ✅ **SVG path styling** - Ensures stroke properties are maintained
 - ✅ **High quality output** - 2x scale for crisp images
 - ✅ **Animation completion wait** - 300ms delay to ensure full rendering
-- ✅ **Descriptive filename** - Format: `prompttoflow-YYYY-MM-DD.png`
+- ✅ **Descriptive filename** - Format: `promptoflow-YYYY-MM-DD.png`
 
 ### 2. PDF Export (`exportToPDF`)
 
@@ -21,7 +21,7 @@ This document provides a comprehensive checklist for all export scenarios that h
 - ✅ **Multi-page support** - Splits large flowcharts across pages
 - ✅ **Edge rendering fix** - Same fixes as PNG export
 - ✅ **A4 format compliance** - Proper scaling to fit standard paper size
-- ✅ **Descriptive filename** - Format: `prompttoflow-YYYY-MM-DD.pdf`
+- ✅ **Descriptive filename** - Format: `promptoflow-YYYY-MM-DD.pdf`
 
 ### 3. JSON Export (`savePromptFile`)
 

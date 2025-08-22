@@ -87,14 +87,12 @@ export const EditableNode: React.FC<NodeProps> = ({
 
   const handleIdEdit = useCallback(() => {
     setIsEditingId(true);
-  }, []);
-
-  const handleMarkerEdit = useCallback((isStart: boolean) => {
+  }, []);  const handleMarkerEdit = useCallback((isStart: boolean) => {
     const currentMarker = isStart ? nodeData.startMarker || '▶' : nodeData.endMarker || '🏁';
     setEditMarkerValue(currentMarker);
     setEditingStartMarker(isStart);
     setIsEditingMarker(true);
-  }, [nodeData.startMarker, nodeData.endMarker]);
+  }, [nodeData]);
   // Real-time handlers - only update local state, no parent callbacks
   const handleRealTimeEdit = useCallback((newValue: string) => {
     setEditValue(newValue);
@@ -110,35 +108,29 @@ export const EditableNode: React.FC<NodeProps> = ({
     setEditMarkerValue(newValue);
     // Don't call parent callback here - only on save
   }, []);
-
   const handleSave = useCallback(() => {
     if (editValue.trim() && nodeData.onEdit) {
       nodeData.onEdit(id, editValue.trim());
-    }
-    setIsEditing(false);
-  }, [editValue, nodeData.onEdit, id]);
-  const handleIdSave = useCallback(() => {
+    }    setIsEditing(false);
+  }, [editValue, nodeData, id]);const handleIdSave = useCallback(() => {
     if (editIdValue.trim() && nodeData.onIdEdit) {
       nodeData.onIdEdit(id, editIdValue.trim());
     }
     setIsEditingId(false);
-  }, [editIdValue, nodeData.onIdEdit, id]);
-
+  }, [editIdValue, nodeData, id]);
   const handleMarkerSave = useCallback(() => {
     if (editMarkerValue.trim() && nodeData.onMarkerEdit) {
       nodeData.onMarkerEdit(id, editMarkerValue.trim(), editingStartMarker);
     }
     setIsEditingMarker(false);
-  }, [editMarkerValue, nodeData.onMarkerEdit, id, editingStartMarker]);
-
+  }, [editMarkerValue, nodeData, id, editingStartMarker]);
   const handleCancel = useCallback(() => {
     setEditValue(nodeData.label || '');
     setIsEditing(false);
-  }, [nodeData.label]);
-  const handleIdCancel = useCallback(() => {
+  }, [nodeData]);  const handleIdCancel = useCallback(() => {
     setEditIdValue(nodeData.nodeId || id);
     setIsEditingId(false);
-  }, [nodeData.nodeId, id]);
+  }, [nodeData, id]);
 
   const handleMarkerCancel = useCallback(() => {
     setEditMarkerValue('');
@@ -166,35 +158,33 @@ export const EditableNode: React.FC<NodeProps> = ({
     } else if (e.key === 'Escape') {
       handleMarkerCancel();
     }
-  }, [handleMarkerSave, handleMarkerCancel]);
-
-  const handleDelete = useCallback(() => {
+  }, [handleMarkerSave, handleMarkerCancel]);  const handleDelete = useCallback(() => {
     if (nodeData.onDelete) {
       nodeData.onDelete(id);
     }
-  }, [nodeData.onDelete, id]);
-  const handleColorChange = useCallback((backgroundColor: string, borderColor: string) => {
+  }, [nodeData, id]);  const handleColorChange = useCallback((backgroundColor: string, borderColor: string) => {
     if (nodeData.onColorChange) {
       nodeData.onColorChange(id, backgroundColor, borderColor);
     }
-  }, [nodeData.onColorChange, id]);
-
-  const handleMarkerToggle = useCallback((markerType: 'start' | 'end') => {
+  }, [nodeData, id]);  const handleMarkerToggle = useCallback((markerType: 'start' | 'end') => {
     if (nodeData.onMarkerToggle) {
       const currentlyEnabled = markerType === 'start' ? nodeData.isStartNode : nodeData.isEndNode;
       nodeData.onMarkerToggle(id, markerType, !currentlyEnabled);
     }
-  }, [nodeData.onMarkerToggle, nodeData.isStartNode, nodeData.isEndNode, id]);
-
+  }, [nodeData, id]);
   return (
     <Card 
       className="relative min-w-[200px] min-h-[60px] p-3"
-      style={{
-        backgroundColor: nodeData.backgroundColor || '#dbeafe',
-        borderColor: nodeData.borderColor || '#3b82f6',
-        borderWidth: '2px',
-        borderStyle: 'solid'
-      }}
+      style={
+        {
+          '--node-bg-color': nodeData.backgroundColor || '#dbeafe',
+          '--node-border-color': nodeData.borderColor || '#3b82f6',
+          backgroundColor: 'var(--node-bg-color)',
+          borderColor: 'var(--node-border-color)',
+          borderWidth: '2px',
+          borderStyle: 'solid'
+        } as React.CSSProperties
+      }
     >
       <Handle 
         type="target" 
@@ -341,18 +331,21 @@ export const EditableNode: React.FC<NodeProps> = ({
                   </DropdownMenuItem>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent side="left">
-                  {colors.map((color) => (
-                    <DropdownMenuItem
+                  {colors.map((color) => (                    <DropdownMenuItem
                       key={color.name}
                       onClick={() => handleColorChange(color.bg, color.border)}
                       className="flex items-center gap-2"
                     >
                       <div 
                         className="w-4 h-4 rounded border-2"
-                        style={{ 
-                          backgroundColor: color.bg, 
-                          borderColor: color.border 
-                        }}
+                        style={
+                          {
+                            '--color-bg': color.bg,
+                            '--color-border': color.border,
+                            backgroundColor: 'var(--color-bg)',
+                            borderColor: 'var(--color-border)'
+                          } as React.CSSProperties
+                        }
                       />
                       {color.name}
                     </DropdownMenuItem>

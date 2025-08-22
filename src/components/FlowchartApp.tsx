@@ -748,11 +748,9 @@ Step 6: Receive insights and recommendations`);
           return element.closest('.react-flow__controls') !== null ||
                  element.closest('.react-flow__minimap') !== null ||
                  element.closest('[data-testid="rf__toolbar"]') !== null;
-        }
-      });
-      
-      const link = document.createElement('a');
-      link.download = `prompttoflow-${new Date().toISOString().split('T')[0]}.png`;
+        }      });
+        const link = document.createElement('a');
+      link.download = `promptoflow-${new Date().toISOString().split('T')[0]}.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
       
@@ -848,10 +846,9 @@ Step 6: Receive insights and recommendations`);
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
+        heightLeft -= pdfHeight;      }
       
-      pdf.save(`prompttoflow-${new Date().toISOString().split('T')[0]}.pdf`);
+      pdf.save(`promptoflow-${new Date().toISOString().split('T')[0]}.pdf`);
       toast.success('Flowchart exported as PDF');
     } catch (error) {
       toast.error('Failed to export as PDF');
