@@ -249,7 +249,7 @@ export const PagesPanel: React.FC<PagesPanelProps> = ({
       </Button>
     );
   }  return (
-    <Card className="fixed top-4 right-4 w-80 max-h-[90vh] z-20 bg-white shadow-xl border-2 border-blue-100 overflow-hidden">
+    <Card className="fixed top-4 right-4 w-full sm:w-80 max-h-[90vh] z-20 bg-white shadow-xl border-2 border-blue-100 overflow-hidden">
       <div className="flex flex-col h-full max-h-[90vh]">
         {/* Header Section */}
         <div className="p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
