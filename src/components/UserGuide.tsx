@@ -76,11 +76,9 @@ export const UserGuide: React.FC = () => {
               <div>Step 5: Deployment</div>
             </div>
           </div>
-        </div>
+        </div>        <Separator />
 
-        <Separator />
-
-        <div>
+        {/* <div>
           <h3 className="font-semibold mb-2 flex items-center gap-2">
             <MousePointer className="w-5 h-5" />
             Interactive Features
@@ -129,7 +127,7 @@ export const UserGuide: React.FC = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <Separator />
 
@@ -155,12 +153,11 @@ export const UserGuide: React.FC = () => {
               <span>Save edit</span>
               <Badge variant="secondary" className="text-xs">Enter</Badge>
             </div>
-          </div>
-        </div>
+          </div>        </div>
 
         <Separator />
 
-        <div>
+        {/* <div>
           <h3 className="font-semibold mb-2 flex items-center gap-2">
             <Download className="w-5 h-5" />
             Export & Save
@@ -179,7 +176,7 @@ export const UserGuide: React.FC = () => {
               <span className="text-muted-foreground">Saves to browser storage with timestamp</span>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <Separator />
 
