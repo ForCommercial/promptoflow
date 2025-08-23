@@ -100,12 +100,10 @@ All colors MUST be HSL.
 
 @layer base {
   * {
-    /* postcss-disable-next-line at-rule-no-unknown */
     @apply border-border;
   }
 
   body {
-    /* postcss-disable-next-line at-rule-no-unknown */
     @apply bg-background text-foreground;
   }
 }
