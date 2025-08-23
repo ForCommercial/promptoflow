@@ -42,15 +42,14 @@ const FlowchartApp = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isDesktopPanelExpanded, setIsDesktopPanelExpanded] = useState(true);
-  const [promptText, setPromptText] = useState(`Step 1: Start project
-Step 2a: Resume Upload
-Step 2b: Skills/Interests Input  
-Step 3: AI matches jobs/domains
-Step 4a: Technical roadmap
-Step 4b: Soft skills development
-Step 5: Company search and interview prep
-Step 6: Receive insights and recommendations`);
+  const [isDesktopPanelExpanded, setIsDesktopPanelExpanded] = useState(true);  const [promptText, setPromptText] = useState(`Step 1: Define project requirements
+Step 2a: Research and planning
+Step 2b: Resource allocation  
+Step 3: Create project timeline
+Step 4a: Development phase
+Step 4b: Quality assurance
+Step 5: Testing and validation
+Step 6: Deploy and monitor results`);
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [showGuide, setShowGuide] = useState(false);
