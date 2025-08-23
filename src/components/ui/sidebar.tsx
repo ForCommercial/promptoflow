@@ -5,6 +5,8 @@ import { PanelLeft } from "lucide-react"
 
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
+import { SIDEBAR_WIDTH, SIDEBAR_WIDTH_MOBILE, SIDEBAR_WIDTH_ICON, SIDEBAR_COOKIE_NAME, SIDEBAR_COOKIE_MAX_AGE, SIDEBAR_KEYBOARD_SHORTCUT } from "./sidebar-constants"
+import { SidebarContext, useSidebar, type SidebarContextType } from "./sidebar-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
@@ -16,34 +18,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-
-const SIDEBAR_COOKIE_NAME = "sidebar:state"
-const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
-const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "18rem"
-const SIDEBAR_WIDTH_ICON = "3rem"
-const SIDEBAR_KEYBOARD_SHORTCUT = "b"
-
-type SidebarContext = {
-  state: "expanded" | "collapsed"
-  open: boolean
-  setOpen: (open: boolean) => void
-  openMobile: boolean
-  setOpenMobile: (open: boolean) => void
-  isMobile: boolean
-  toggleSidebar: () => void
-}
-
-const SidebarContext = React.createContext<SidebarContext | null>(null)
-
-function useSidebar() {
-  const context = React.useContext(SidebarContext)
-  if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider.")
-  }
-
-  return context
-}
 
 const SidebarProvider = React.forwardRef<
   HTMLDivElement,
@@ -114,7 +88,7 @@ const SidebarProvider = React.forwardRef<
     // This makes it easier to style the sidebar with Tailwind classes.
     const state = open ? "expanded" : "collapsed"
 
-    const contextValue = React.useMemo<SidebarContext>(
+    const contextValue = React.useMemo<SidebarContextType>(
       () => ({
         state,
         open,
@@ -123,26 +97,33 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
-      }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
+      }),      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar]
     )
 
     return (
       <SidebarContext.Provider value={contextValue}>
         <TooltipProvider delayDuration={0}>
           <div
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH,
-                "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-                ...style,
-              } as React.CSSProperties
-            }
+            ref={(el) => {
+              if (el) {
+                el.style.setProperty("--sidebar-width", SIDEBAR_WIDTH);
+                el.style.setProperty("--sidebar-width-icon", SIDEBAR_WIDTH_ICON);
+                if (style) {
+                  Object.assign(el.style, style);
+                }
+              }
+              if (ref) {
+                if (typeof ref === 'function') {
+                  ref(el);
+                } else {
+                  ref.current = el;
+                }
+              }
+            }}
             className={cn(
-              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
+              "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar sidebar-width",
               className
             )}
-            ref={ref}
             {...props}
           >
             {children}
@@ -188,20 +169,18 @@ const Sidebar = React.forwardRef<
           {children}
         </div>
       )
-    }
-
-    if (isMobile) {
+    }    if (isMobile) {
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
+            ref={(el) => {
+              if (el) {
+                el.style.setProperty("--sidebar-width", SIDEBAR_WIDTH_MOBILE);
+              }
+            }}
             data-sidebar="sidebar"
             data-mobile="true"
-            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-            style={
-              {
-                "--sidebar-width": SIDEBAR_WIDTH_MOBILE,
-              } as React.CSSProperties
-            }
+            className="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden sidebar-width-mobile"
             side={side}
           >
             <div className="flex h-full w-full flex-col">{children}</div>
@@ -665,16 +644,19 @@ const SidebarMenuSkeleton = React.forwardRef<
           className="size-4 rounded-md"
           data-sidebar="menu-skeleton-icon"
         />
-      )}
-      <Skeleton
+      )}      <div
+        ref={(el) => {
+          if (el) {
+            el.style.setProperty("--skeleton-width", width);
+          }
+        }}
         className="h-4 flex-1 max-w-[--skeleton-width]"
-        data-sidebar="menu-skeleton-text"
-        style={
-          {
-            "--skeleton-width": width,
-          } as React.CSSProperties
-        }
-      />
+      >
+        <Skeleton
+          className="h-full w-full"
+          data-sidebar="menu-skeleton-text"
+        />
+      </div>
     </div>
   )
 })
@@ -757,5 +739,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  // eslint-disable-next-line react-refresh/only-export-components
   useSidebar,
 }
