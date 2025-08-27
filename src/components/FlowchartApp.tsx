@@ -1206,7 +1206,7 @@ Step 6: Deploy and monitor results`);
   }, [clearDiagram, isMobile]);
 
   // Prompt Panel Content Component
-  const PromptPanelContent = () => (
+  const PromptPanelContent = useMemo(() => (
     <div className="flex flex-col h-full">
       <div className="mb-4">
         <h2 className="text-xl font-semibold mb-2">Prompt to Flowchart</h2>
@@ -1217,6 +1217,7 @@ Step 6: Deploy and monitor results`);
       
       <div className="flex-1 mb-4">
         <Textarea
+          key="main-prompt-textarea"
           value={promptText}
           onChange={(e) => setPromptText(e.target.value)}
           placeholder="Enter your plan here..."
@@ -1266,7 +1267,7 @@ Step 6: Deploy and monitor results`);
         </div>
       </div>
     </div>
-  );  return (
+  ), [promptText, handleGenerateFlowchart, handleClearDiagram, showGuide]);  return (
     <div className="h-screen flex flex-col md:flex-row">
       {/* Desktop Left Panel - Sliding Drawer */}
       {!isMobile && (
@@ -1298,13 +1299,11 @@ Step 6: Deploy and monitor results`);
               isDesktopPanelExpanded ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
           >
-            {isDesktopPanelExpanded && (
-              <div className="pt-16 px-4 pb-4 h-full">
-                <Card className="h-full p-4">
-                  <PromptPanelContent />
-                </Card>
-              </div>
-            )}
+            <div className="pt-16 px-4 pb-4 h-full">
+              <Card className="h-full p-4">
+                {isDesktopPanelExpanded && PromptPanelContent}
+              </Card>
+            </div>
           </div>
 
           {/* Collapsed State Indicator */}
@@ -1348,7 +1347,7 @@ Step 6: Deploy and monitor results`);
                 </SheetDescription>
               </SheetHeader>
               <div className="mt-6 h-[calc(100vh-120px)]">
-                <PromptPanelContent />
+                {PromptPanelContent}
               </div>
             </SheetContent>
           </Sheet>        )}        {/* FlowchartToolbar - Commented out as requested */}
